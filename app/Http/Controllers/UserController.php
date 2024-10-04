@@ -3,37 +3,40 @@
 namespace App\Http\Controllers;
 
 use App\Models\Permission;
-use Illuminate\Http\Request;
 
 use App\Models\User;
 use App\Models\UserPermission;
-use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class UserController extends Controller
 {
-    public function users(){
+    public function index(){
 
-        $users = User::select('users.id', 'users.lname', 'users.fname', DB::raw('GROUP_CONCAT(permissions.description) as permissions'))
-        ->join('user_permissions', 'user_permissions.user_id', '=', 'users.id')
-        ->join('permissions', 'user_permissions.permission_id', '=', 'permissions.id')
-        ->groupBy('users.id', 'users.lname', 'users.fname')
+        $users = User::select('users.*', 'roles.role as role_name')
+        ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+        ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+        ->whereIn('roles.id', [1, 19, 20, 21])
         ->get();
-    
-    
+
+        $user = Auth::user()->id;
+        
+         $permissionIds = UserPermission::where('user_id', $user)->pluck('permission_id');
+
+         
+         $permissions = Permission::whereIn('id', $permissionIds)->get();
      
-        $allusers = User::all();
+       
+         $userPermissions = $permissions->pluck('description')->toArray(); 
 
-        $permissions = Permission::all();
-
-        // $user->with('user_permissions');
-
-        // if($user->user_permissions){
-
-        // }
-
-    
-        return view('welcome', compact('users', 'allusers', 'permissions'));
-
+    return Inertia::render('User/User', [
+        'users'=>$users,
+        'pageTitle'=>'List of Users',
+        'user'=>Auth::user()->id,
+        'userPermissions' => $userPermissions,
+        'name'=> Auth::user()->lname . ', ' . Auth::user()->fname
+    ]);
+       
+       
     }
 }
