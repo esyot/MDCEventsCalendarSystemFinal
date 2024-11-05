@@ -16,8 +16,8 @@ const toggleDropdown = () => {
         <img src="/resources/css/mdc.png" alt="Logo" class="mx-auto w-14 h-14 rounded-full ml-4" />
         <nav>
           <div class="flex ml-16 gap-10">
-            <a href="/guest">Dashboard</a>
-            <a href="/calendar">Calendar</a>
+            <a href="/guest-dashboard">Dashboard</a>
+            <a href="/guest-calendar">Calendar</a>
           </div>
         </nav>
       </div>
