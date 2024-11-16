@@ -31,6 +31,13 @@ class UserController extends Controller
          
          $permissions = Permission::whereIn('id', $permissionIds)->get();
      
+         $user_role_id = UserRoles::where('user_id', Auth::user()->id)
+          ->whereIn('role_id', [1, 19, 20, 21])
+         ->first();
+         $user_role_role = Role::find($user_role_id->role_id);
+         $user_role = $user_role_role->role;
+        
+        
        
          $userPermissions = $permissions->pluck('description')->toArray(); 
          $roles = Role::whereIn('roles.id', [1, 19, 20, 21])->pluck('role')->toArray();
@@ -43,7 +50,8 @@ class UserController extends Controller
         'name'=> Auth::user()->lname . ', ' . Auth::user()->fname,
         'allUsers'=>        $allUsers,
         'user_searched'=> 0, 
-        'roles'=>$roles
+        'roles'=>$roles,
+        'user_role'=>$user_role
 
     ]);
        

@@ -5,7 +5,6 @@ import GuestLayout from '../../../Layouts/GuestLayout.vue';
 
 defineOptions({ layout: GuestLayout });
 
-
 const form = useForm({
   user: '',
   password: ''
@@ -21,15 +20,22 @@ const toggleLogIn = () => {
 
 
 
-
-// Get the current year and current date using JavaScript's Date object
+// Get the current year and current date
 const currentDate = new Date();
 const currentYear = ref(currentDate.getFullYear());
+const currentMonth = ref(currentDate.getMonth() + 1); // Months are zero-indexed
+const currentDay = ref(currentDate.getDate());
 
-// Create an array for months
+// Check if a day is today's date
+const isToday = (month, day) => {
+  return currentYear.value === currentDate.getFullYear() &&
+         month === currentMonth.value &&
+         day === currentDay.value;
+};
+
+
 const monthsInYear = Array.from({ length: 12 }, (_, index) => index + 1);
 
-// Generate days for each month with the correct starting day of the week
 const daysInMonth = (month, year) => {
   return new Date(year, month, 0).getDate();
 };
@@ -44,12 +50,22 @@ const calendarData = ref(
     const firstDay = getFirstDayOfMonth(month, currentYear.value);
     const monthDays = Array.from({ length: days }, (_, index) => index + 1);
 
-    // Add empty slots for days before the first day of the month
     return Array(firstDay).fill(null).concat(monthDays);
   })
 );
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Function to update calendar data when the year changes
+const updateCalendarDataForYear = () => {
+  calendarData.value = monthsInYear.map((month) => {
+    const days = daysInMonth(month, currentYear.value);
+    const firstDay = getFirstDayOfMonth(month, currentYear.value);
+    const monthDays = Array.from({ length: days }, (_, index) => index + 1);
+
+    return Array(firstDay).fill(null).concat(monthDays);
+  });
+};
 
 const changeYear = (direction) => {
   if (direction === 'previous' && currentYear.value > 2020) {
@@ -57,22 +73,15 @@ const changeYear = (direction) => {
   } else if (direction === 'next' && currentYear.value < 2030) {
     currentYear.value++;
   }
-  calendarData.value = monthsInYear.map((month) => {
-    const days = daysInMonth(month, currentYear.value);
-    const firstDay = getFirstDayOfMonth(month, currentYear.value);
-    const monthDays = Array.from({ length: days }, (_, index) => index + 1);
-
-    // Add empty slots for days before the first day of the month
-    return Array(firstDay).fill(null).concat(monthDays);
-  });
+  updateCalendarDataForYear();
 };
 
 const selectedMonth = ref(null);
 const searchQuery = ref('');
 const selectedLevel = ref('');
 const selectedDepartment = ref('');
-const levels = ['College','Elementary',  'Graduate School', 'High School'];
-const departments = ['CABM-B', 'CABM-H', 'CAST', 'CCJ','COE', 'CON'];
+const levels = ['College', 'Elementary', 'Graduate School', 'High School'];
+const departments = ['CABM-B', 'CABM-H', 'CAST', 'CCJ', 'COE', 'CON'];
 
 const selectMonth = (monthIndex) => {
   selectedMonth.value = monthIndex;
@@ -156,45 +165,50 @@ const backToYearView = () => {
       <div class="flex flex-col bg-gray-100 border-2 border-gray-500 rounded-xl">
         <div class="border-b-2 border-gray-500 w-full p-4 flex justify-between items-center">
           <button @click="changeYear('previous')" class="p-2 bg-gray-300 rounded shadow-md">Previous</button>
-          <input
-            v-model="currentYear"
-            min="2020"
-            max="2030"
-            class="bg-transparent bg-white rounded p-2 shadow-md font-medium text-xl focus:outline-none text-center w-24"
-            @change="calendarData.value = monthsInYear.map(month => {
-              const days = daysInMonth(month, currentYear.value);
-              const firstDay = getFirstDayOfMonth(month, currentYear.value);
-              const monthDays = Array.from({ length: days }, (_, index) => index + 1);
-              return Array(firstDay).fill(null).concat(monthDays);
-            })"
-          />
+          <select
+    v-model="currentYear"
+    class="bg-transparent bg-white rounded p-2 shadow-md font-medium text-xl focus:outline-none text-center w-24"
+    @change="updateCalendarDataForYear"
+  >
+    <option v-for="year in Array.from({ length: 11 }, (_, i) => i + 2020)" :key="year" :value="year">
+      {{ year }}
+    </option>
+  </select>
+
           <button @click="changeYear('next')" class="p-2 bg-gray-300 rounded shadow-md">Next</button>
         </div>
 
         <div v-if="selectedMonth === null" class="w-full h-full rounded-lg">
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <template v-for="(month, monthIndex) in calendarData" :key="monthIndex">
-              <div class="flex flex-col border border-gray-400 p-2 hover:bg-gray-200 cursor-pointer" @click="selectMonth(monthIndex)">
-                <div class="bg-blue-300 p-1 font-bold text-center">
-                  {{ ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'][monthIndex] }}
-                </div>
-                <div class="grid grid-cols-7 gap-1 p-1">
-                  <template v-for="dayOfWeek in daysOfWeek" :key="dayOfWeek">
-                    <div class="flex justify-center items-center font-bold h-6 text-xs">
-                      {{ dayOfWeek }}
-                    </div>
-                  </template>
-                  <template v-for="day in month" :key="day">
-                    <div v-if="day" class="flex justify-center items-center h-6 text-xs">
-                      {{ day }}
-                    </div>
-                    <div v-else class="h-6"></div>
-                  </template>
-                </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <template v-for="(month, monthIndex) in calendarData" :key="monthIndex">
+        <div class="flex flex-col border border-gray-400 p-2 hover:bg-gray-200 cursor-pointer" @click="selectMonth(monthIndex)">
+          <div class="bg-blue-300 p-1 font-bold text-center">
+            {{ ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'][monthIndex] }}
+          </div>
+          <div class="grid grid-cols-7 gap-1 p-1">
+            <template v-for="dayOfWeek in daysOfWeek" :key="dayOfWeek">
+              <div class="flex justify-center items-center font-bold h-6 text-xs">
+                {{ dayOfWeek }}
               </div>
+            </template>
+            <template v-for="day in month" :key="day">
+              <div
+                v-if="day"
+                :class="[
+                  'flex justify-center items-center h-6 text-xs',
+                  { 'bg-blue-300 font-bold': isToday(monthIndex + 1, day) }
+                ]"
+              >
+                {{ day }}
+              </div>
+              <div v-else class="h-6"></div>
             </template>
           </div>
         </div>
+      </template>
+    </div>
+  </div>
+
 
         <div v-else class="w-full h-full rounded-lg">
           <button @click="backToYearView" class="mb-2 p-2 bg-gray-300 rounded shadow-md">Back</button>
@@ -209,9 +223,10 @@ const backToYearView = () => {
                 </div>
               </template>
               <template v-for="day in calendarData[selectedMonth]" :key="day">
-                <div v-if="day" class="flex justify-center items-center h-8 border-t border-gray-200">
-                  {{ day }}
-                </div>
+                <div v-if="day" :class="['flex justify-center items-center h-8 border-t border-gray-200', { 'bg-blue-300 font-bold': isToday(selectedMonth + 1, day) }]">
+  {{ day }}
+</div>
+
                 <div v-else class="h-8"></div>
               </template>
             </div>

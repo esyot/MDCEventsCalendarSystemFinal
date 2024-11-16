@@ -80,3 +80,12 @@ Route::get('/user-add-role', [UserController::class, 'user_add_role']);
 Route::get('/user-delete-role/{id}', [UserController::class, 'user_delete_role']);
 
 Route::get('/user-role-update', [UserController::class, 'user_role_update']);
+
+
+Route::get('/admin/event-create', [EventRequestController::class, 'create_request']);
+
+Route::get('/admin/event/comment-add/{id}', [EventRequestController::class, 'addComment']);
+
+Route::get('/admin/event/approve/{role}/{id}',[EventRequestController::class,'approveEvent']);
+
+Route::get('/admin/event/retract/{id}', [EventRequestController::class, 'retractEvent']);

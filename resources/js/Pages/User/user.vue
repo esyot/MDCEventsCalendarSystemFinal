@@ -49,6 +49,9 @@ const closeSearchFormModal = () => {
     },
     roles: {
       type: Array,
+    },
+    user_role: {
+      type: String,
     }
   });
 
@@ -136,14 +139,14 @@ watch(search_value, (newValue) => {
 </div>
 
 
-  <div class="flex items-center justify-end bg-blue-500 w-full p-2">
-    <button @click="toggleSearchUserFormModal()" class="bg-green-500 text-green-100 px-3 py-2 rounded hover:opacity-50">
+  <div class="flex items-center justify-end w-full p-2 ">
+    <button v-if="user_role=='super_admin'" @click="toggleSearchUserFormModal()" class="bg-green-500 text-white px-3 py-2 rounded hover:opacity-90">
       <span>Add User's role</span>
     </button>
   
   </div>
    
-   <div class="overflow-x-auto mx-4 mt-4">
+   <div class="overflow-x-auto mx-4  shadow-lg shadow-gray-300">
 <div class="max-h-[540px] overflow-y-auto">
 
   <table class="min-w-full bg-white border border-gray-300">
@@ -152,7 +155,7 @@ watch(search_value, (newValue) => {
         <th class="py-3 px-6 text-left">Last Name</th>
         <th class="py-3 px-6 text-left">First Name</th>
         <th class="py-3 px-6 text-left">Role</th>
-        <th class="py-3  text-left">Edit Role</th>
+        <th class="py-3  text-left"  v-if="user_role=='super_admin'">Edit Role</th>
       </tr>
     </thead>
     <tbody class="text-gray-600 text-sm font-light overflow-y-auto">
@@ -160,7 +163,7 @@ watch(search_value, (newValue) => {
         <td class="py-3 px-6">{{ user.lname }}</td>
         <td class="py-3 px-6">{{ user.fname }}</td>
         <td class="py-3 px-6">{{ user.role_name }}</td>
-        <td class="py-3 px-6 flex items-center space-x-4">
+        <td class="py-3 px-6 flex items-center space-x-4"  v-if="user_role=='super_admin'">
           <button @click="openEditRoleModal(user.id)" class="hover:opacity-50"> 
             <i class="fas fa-pencil"></i>
            </button>

@@ -35,13 +35,13 @@ const toggleDropdown = () => {
                     >Calendar</a
                 >
                 <a href="/eventRequest"
-                class="hover:bg-blue-700 p-2 rounded"
+                class="hover:bg-blue-700 p-2 rounded"   
                     >Event Request</a
                 >
-                <a href="/users"
+                <a href="/users"  v-if="user_role=='super_admin'|| user_role=='admin'"
                 class="hover:bg-blue-700 p-2 rounded"
                     >Users</a
-                >
+                >   
             </nav>
         </aside>
         <!-- v-if="hasPermission('can request event')" -->
@@ -139,6 +139,9 @@ export default {
         users: {
             type: Array,
         },
+        user_role: {
+            type: String
+        }
     },
     data() {
         return {
