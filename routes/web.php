@@ -82,10 +82,12 @@ Route::get('/user-delete-role/{id}', [UserController::class, 'user_delete_role']
 Route::get('/user-role-update', [UserController::class, 'user_role_update']);
 
 
-Route::get('/admin/event-create', [EventRequestController::class, 'create_request']);
+Route::post('/admin/event-create', [EventRequestController::class, 'create_request'])->name('admin.event-create');
 
 Route::get('/admin/event/comment-add/{id}', [EventRequestController::class, 'addComment']);
 
 Route::get('/admin/event/approve/{role}/{id}',[EventRequestController::class,'approveEvent']);
 
 Route::get('/admin/event/retract/{id}', [EventRequestController::class, 'retractEvent']);
+
+Route::get('/admin/download-activity-design/{file}', [EventRequestController::class, 'downloadActivityDesign']);

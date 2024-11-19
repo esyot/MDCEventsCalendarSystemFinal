@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import MainLayout from '../../Layouts/MainLayout.vue';
+import { Inertia } from '@inertiajs/inertia';
+
 
 defineOptions({ layout: MainLayout });
 
@@ -211,9 +213,9 @@ const backToYearView = () => {
                 
                 <div v-else class=""></div>
 
-                <div :id="'create-event-modal-' + day" class="flex fixed  inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden">
-                    <form action="/admin/event-create" method="GET" class="bg-white p-2 w-[500px] shadow-md rounded">
-                        <div class="flex w-full justify-between mb-4">
+                <div :id="'create-event-modal-' + day" class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden">
+    <form @submit.prevent="submitForm" enctype="multipart/form-data" class="bg-white p-2 w-[500px] shadow-md rounded">
+      <div class="flex w-full justify-between mb-4">
                             <h1 class="text-2xl">Create Event on {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selectedMonth] }} {{ day }}, {{ currentYear  }}</h1>
 
                             <button type="button" @click="closeCreateEventModal(day)" class="text-2xl font-bold hover:opacity-50">&times;</button>
@@ -224,31 +226,28 @@ const backToYearView = () => {
 
                         <div>
                             <label for="">Event Title:</label>
-                            <input type="text" name="event_name" id="" placeholder="Input event title" class="w-full block p-2 border border-gray-300 rounded shadow-inner">
+                            <input type="text" name="event_name" id="" placeholder="Input event title" class="w-full block p-2 border border-gray-300 rounded shadow-inner" required>
                             
                            </div>
 
                            <div>
                             <label for="">Term:</label>
-                            <select name="event_term_id" id="" class="w-full block p-2 border border-gray-300 rounded shadow-inner">
+                            <select name="event_term_id" id="" class="w-full block p-2 border border-gray-300 rounded shadow-inner" required>
                               <option v-for="term in terms" :key="term" :value="term.id">{{term.name}}</option>
                             </select>
                            </div>
 
-                        <!-- <div>
-                            <label for="">Date:</label>
-                            <input type="date" name="" id="" class="block p-2 border border-gray-300 w-full rounded">
-                        </div> -->
+  
                         <div>
                             <label for="">Venue:</label>
-                            <select type="text" name="event_venue" class="block p-2 border border-gray-300 w-full rounded">
-                                    <option v-for="venue in venues" :key="venue" value="{{  venue.id}}">{{  venue.name}}</option>
+                            <select type="text" name="event_venue" class="block p-2 border border-gray-300 w-full rounded" required>
+                                    <option v-for="venue in venues" :key="venue" :value="venue.id">{{ venue.name}}</option>
                                 </select>
                         </div>
                         <div>
                             <label for="">Time:</label>
                             <div class="flex items-center space-x-2">
-                                <input type="time" name="event_time_start" id="" class="block p-2 border border-gray-300 w-full rounded">
+                                <input type="time" name="event_time_start" id="" class="block p-2 border border-gray-300 w-full rounded" required>
                             <h1>To</h1>
                             <input type="time" name="event_time_end" id="" class="block p-2 border border-gray-300 w-full rounded">
                             </div>
@@ -257,14 +256,14 @@ const backToYearView = () => {
 
                         <div>
                           <label for="">Departments:</label>
-                          <select type="text" name="event_department_id" class="block p-2 border border-gray-300 w-full rounded">
+                          <select type="text" name="event_department_id" class="block p-2 border border-gray-300 w-full rounded" required>
                                     <option v-for="department in departments" :key="department" :value="department.id">{{  department.name}}</option>
                                 </select>
                         </div>
 
                         <div>
                           <label for="">Levels</label>
-                          <select name="event_levels" id="" class="block p-2 border border-gray-300 rounded shadow-inner">
+                          <select name="event_levels" id="" class="block p-2 border border-gray-300 rounded shadow-inner" required> 
                           <option value="['1']">1</option>
                           <option value="['2']" id="">2</option>
                           <option value="['3']" id="">3</option>
@@ -282,7 +281,7 @@ const backToYearView = () => {
                        
                         <div>
                             <label for="">Activity Design:</label>
-                            <input type="file" class="block p-2 border border-gray-300 w-full rounded">
+                            <input type="file" name="activity_design" class="block p-2 border border-gray-300 w-full rounded">
                         </div>
                        
                         <div class="flex justify-end p-2">
@@ -290,8 +289,7 @@ const backToYearView = () => {
                         </div>
                     </form>
                 </div>
-                
-             
+              
               </template>
             </div>
 
@@ -304,9 +302,23 @@ const backToYearView = () => {
       </div>
     </div>
   </div>
+
+
+  <div v-if="success" class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 z-50">
+    <div class="bg-white p-2">
+{{success}}
+    </div>
+  </div>
 </template>
 
 <script>
+
+  import axios from 'axios';
+
+const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 
 const convertToDate = (month, day, year) => {
@@ -323,6 +335,7 @@ const convertToDate = (month, day, year) => {
   
 }
 export default {
+
   props: {
    departments: {
     type: Array
@@ -342,9 +355,18 @@ export default {
       type: String,
     },
 
-  }
-}
+  },
+  methods: {
+    submitForm(event) {
+      const formData = new FormData(event.target);
 
+      Inertia.post('/admin/event-create', formData, {
+        preserveState: true, 
+      
+      });
+    },
+  }
+};
 
 
 const openCreateEventModal = (day) => {

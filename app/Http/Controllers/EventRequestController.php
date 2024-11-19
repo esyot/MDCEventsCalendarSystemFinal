@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\EventRequest;
 
+use Illuminate\Support\Facades\Storage;
+
 class EventRequestController extends Controller
 {
     // Display a list of all event requests
@@ -26,9 +28,10 @@ class EventRequestController extends Controller
         $userPermissions = $permissions->pluck('description')->toArray(); 
 
         $events = DB::table('events')
-        ->join('venues', 'events.id', '=', 'venues.id')
+        ->join('venues', 'events.venue_id', '=', 'venues.id')  // Join on venue_id in events and id in venues
         ->select('events.*', 'venues.name as venue_name', 'venues.building as venue_building')
         ->get();
+    
 
 
         $user_role_id = UserRoles::where('user_id', Auth::user()->id)
@@ -78,24 +81,44 @@ class EventRequestController extends Controller
     }
 
     public function create_request(Request $request){
-
-
-        $event = Event::create([
-            'name' => $request->event_name,
-            'date' => $request->event_date,  // Ensure this is in 'YYYY-MM-DD' format
-            'term_id' => $request->event_term_id,
-            'user_id' => Auth::user()->id,
-            'department_id' => $request->event_department_id,
-            'levels' => json_encode($request->event_levels),  // Encode levels as JSON if it’s an array
-            'time_start' => date('H:i:s', strtotime($request->event_time_start)),  // Ensure 'HH:MM:SS' format
-            'time_end' => date('H:i:s', strtotime($request->event_time_end)),      // Ensure 'HH:MM:SS' format
+     
+       
+        $request->validate([
+            'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240', // Add your file validation rules here
         ]);
-        
+    
+        // Handle the file upload
+        $file = $request->file('activity_design');
+        if ($file && $file->isValid()) {
+            $directory = 'files/uploads';
+    
+            // Ensure the directory exists
+            if (!Storage::disk('public')->exists($directory)) {
+                Storage::disk('public')->makeDirectory($directory);
+            }
+    
+            // Save the file
+            $filename = $file->getClientOriginalName();
+            $filePath = $file->storeAs($directory, $filename, 'public');
+    
+$event = Event::create([
+    'name' => $request->event_name,
+    'date' => $request->event_date,
+    'term_id' => $request->event_term_id,
+    'user_id' => Auth::user()->id,
+    'department_id' => $request->event_department_id,
+    'levels' => json_encode($request->event_levels),
+    'venue_id'=>$request->event_venue,
+    'time_start' => date('H:i:s', strtotime($request->event_time_start)),
+    'time_end' => date('H:i:s', strtotime($request->event_time_end)),
+    'activity_design_file_name' => $filename
+]);
 
-        if($event){
-            return redirect()->back()->with('success', 'Event request has been successfully submitted.');
-        }
-    }
+if ($event) {
+    return redirect()->back()->with('success', 'Event request has been successfully submitted.');
+}
+
+    }}
 
     public function addComment(Request $request, $id){
       
@@ -152,5 +175,21 @@ class EventRequestController extends Controller
         return redirect()->back()->with('success','Event was retracted successfully!');
 
     }
+
+    public function downloadActivityDesign($file)
+    {
+        $filePath = 'files/uploads/' . $file;
+
+        if (Storage::disk('public')->exists($filePath)) {
+            
+           Storage::disk('public')->size($filePath);
+    
+            return Storage::disk('public')->download($filePath);
+        } else {
+           
+            return response()->json(['error' => 'File not found'], 404);
+        }
+    }
+    
 }
 

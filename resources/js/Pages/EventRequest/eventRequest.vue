@@ -78,7 +78,10 @@ defineOptions({ layout: MainLayout });
 
           <div class="flex justify-between p-2">
             <h1  class="font-medium" >Activity Design:</h1>
-            <button class="border p-2 ">filename.zip</button>
+            <a :href="'/admin/download-activity-design/' + event.activity_design_file_name"
+    class="px-4 py-2 border border-gray-300 hover:opacity-50 rounded">
+    {{ event.activity_design_file_name }}
+          </a>
           </div>
 
           <div v-if="user_role == 'event_coordinator'" class="flex justify-between p-2">
@@ -187,7 +190,6 @@ export default {
   printWindow.document.close();
   printWindow.print();
 }
-
   }
 }
 </script>
