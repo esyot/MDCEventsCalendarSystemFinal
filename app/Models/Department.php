@@ -9,5 +9,9 @@ class Department extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    // A department has many teachers
+    public function teachers()
+    {
+        return $this->hasMany(Teacher::class);  // A department can have many teachers
+    }
 }

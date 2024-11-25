@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +32,8 @@ class AuthController extends Controller
         if (Auth::attempt(['user' => $fields['user'], 'password' => $fields['password']])) {
             $user = Auth::user();
 
-            $usersCanLogin = UserRoles::whereIn('role_id', [1, 19, 20, 21])->pluck('user_id');
+            $rolesAllowed = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->get()->pluck('id');
+            $usersCanLogin = UserRoles::whereIn('role_id', $rolesAllowed)->pluck('user_id');
 
             if ($usersCanLogin->contains($user->id)) {
                 return redirect()->route('dashboard');
@@ -39,11 +41,7 @@ class AuthController extends Controller
         }
 
         $events = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->get();
-        $events_today = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->where('date', today())->get();
-
-
-
-
+        $events_today = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->where('date_start', today())->get();
 
         return Inertia::render('Guest/Dashboard/dashboard', [
             'errors' => ['user' => 'The provided credentials are incorrect.'],
@@ -58,6 +56,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::logout();
+
         return redirect()->route('guest');
     }
 
@@ -68,7 +67,7 @@ class AuthController extends Controller
         }
 
         $events = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->get();
-        $events_today = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->where('date', today())->get();
+        $events_today = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->where('date_start', today())->get();
 
         return Inertia::render('Guest/Dashboard/dashboard', [
             'error' => 'Your account access has been removed.',

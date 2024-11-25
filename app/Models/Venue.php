@@ -12,7 +12,15 @@ class Venue extends Model
     protected $guarded = [];
 
     public function events()
-{
-    return $this->hasMany(Event::class);
-}
+    {
+        return $this->hasMany(Event::class);
+
+
+    }
+
+    public function coordinators()
+    {
+        return $this->hasMany(VenueCoordinator::class);
+    }
+
 }

@@ -1,25 +1,41 @@
 <?php
-
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\UserRoles;
+use App\Models\Role; // Import Role model
 
 class CheckUserRole
 {
-    public function handle(Request $request, Closure $next)
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string  $roles
+     * @return mixed
+     */
+    public function handle(Request $request, Closure $next, ...$roles)
     {
+
         if (Auth::check()) {
             $user = Auth::user();
-            $usersCanLogin = UserRoles::whereIn('role_id', [1, 19, 20, 21])->pluck('user_id');
 
-            if (!$usersCanLogin->contains($user->id)) {
-                Auth::logout(); 
-                return redirect()->route('login')->with('error', 'Your access rights have changed. Please log in again.');
+            $userRoleNames = $user->roles->pluck('role')->toArray();
+
+
+            $allowedRoles = array_intersect($userRoleNames, $roles);
+
+
+            if (empty($allowedRoles)) {
+                return redirect()->route('unauthorized')->with('error', 'You do not have permission to access this page.');
             }
+        } else {
+
+            return redirect()->route('login')->with('error', 'You need to be logged in to access this page.');
         }
+
 
         return $next($request);
     }
