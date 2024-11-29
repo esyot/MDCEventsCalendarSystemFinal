@@ -250,18 +250,27 @@ onMounted(() => {
         </div>
     </div>
 
-    <div class="flex items-center justify-end w-full p-2">
+    <div class="flex items-center justify-between w-full p-2">
+        <div class="p-2 bg-white space-x-1 rounded-xl border border-gray-300">
+            <i class="fas fa-magnifying-glass"></i>
+            <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search..."
+                class="bg-transparent focus:outline-none"
+            />
+        </div>
         <button
             v-if="user_role == 'super_admin'"
             @click="toggleSearchUserFormModal()"
-            class="bg-green-500 text-white px-3 py-2 rounded hover:opacity-90"
+            class="bg-green-500 text-white py-2 px-4 rounded hover:opacity-90"
         >
             <span>Add User's role</span>
         </button>
     </div>
 
     <div class="overflow-x-auto mx-4 shadow-lg shadow-gray-300">
-        <div class="max-h-[540px] overflow-y-auto">
+        <div class="max-h-[560px] overflow-y-auto">
             <table class="min-w-full bg-white border border-gray-300">
                 <thead
                     class="sticky top-0 bg-gray-100 text-gray-600 uppercase text-sm leading-normal"
@@ -271,8 +280,11 @@ onMounted(() => {
                         <th class="py-3 px-6 text-left">First Name</th>
                         <th class="py-3 px-6 text-left">Role</th>
                         <th
-                            class="w-[20px] text-left py-3"
-                            v-if="user_role == 'super_admin'"
+                            class="text-left py-3"
+                            v-if="
+                                user_role == 'super_admin' ||
+                                user_role == 'admin'
+                            "
                         >
                             Edit Role
                         </th>
@@ -280,7 +292,7 @@ onMounted(() => {
                 </thead>
                 <tbody class="text-gray-600 text-sm font-light overflow-y-auto">
                     <tr
-                        v-for="user in users"
+                        v-for="user in filteredUsers"
                         :key="user.id"
                         class="hover:bg-gray-200"
                     >
@@ -289,13 +301,16 @@ onMounted(() => {
                         <td class="py-3 px-6">{{ user.role_name }}</td>
                         <td
                             class="py-3 px-6 flex items-center space-x-4"
-                            v-if="user_role == 'super_admin'"
+                            v-if="
+                                user_role == 'super_admin' ||
+                                user_role == 'admin'
+                            "
                         >
                             <button
                                 @click="openEditRoleModal(user.id)"
                                 class="hover:opacity-50"
                             >
-                                <i class="fas fa-pencil"></i>
+                                <i class="fas fa-pencil text-yellow-500"></i>
                             </button>
 
                             <button
@@ -409,3 +424,29 @@ onMounted(() => {
         </div>
     </div>
 </template>
+
+<script>
+export default {
+    data() {
+        return {
+            searchQuery: "",
+        };
+    },
+    computed: {
+        filteredUsers() {
+            if (!this.searchQuery) {
+                return this.users;
+            }
+
+            return this.users.filter((user) => {
+                const searchQueryLower = this.searchQuery.toLowerCase();
+                return (
+                    user.lname.toLowerCase().includes(searchQueryLower) ||
+                    user.fname.toLowerCase().includes(searchQueryLower) ||
+                    user.role_name.toLowerCase().includes(searchQueryLower)
+                );
+            });
+        },
+    },
+};
+</script>

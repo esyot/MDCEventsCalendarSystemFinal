@@ -5,21 +5,23 @@ const isOpen = ref(false);
 </script>
 
 <template>
-    <div class="">
+    <div class="shadow-md h-screen">
         <header
-            class="bg-blue-800 text-white p-2 flex items-center justify-between shadow z-50"
+            class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-2 flex items-center justify-between shadow z-50"
         >
             <div class="flex items-center">
-                <nav class="flex items-center space-x-4">
+                <nav class="flex items-center space-x-4 p-1">
                     <img
                         src="/resources/css/mdc.png"
                         alt="Logo"
-                        class="rounded-full shadow-md w-14 h-14"
+                        class="rounded-full shadow-md w-10 h-10"
                     />
-                    <div class="flex space-x-4">
+                    <div class="flex space-x-6">
                         <a href="/guest-dashboard" class="hover:opacity-50"
                             >Dashboard</a
                         >
+                        <div class="border-l border-gray-300 h-6"></div>
+
                         <a href="/guest-calendar" class="hover:opacity-50"
                             >Calendar</a
                         >
@@ -27,10 +29,10 @@ const isOpen = ref(false);
                 </nav>
             </div>
 
-            <div class="flex justify-end">
+            <div class="flex justify-end px-4 drop-shadow">
                 <button
                     @click="toggleLogIn"
-                    class="block space-x-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded hover:opacity-50"
+                    class="flex items-center space-x-2 hover:opacity-50"
                 >
                     <i class="fas fa-user"></i>
                     <span>Log In</span>
@@ -38,9 +40,7 @@ const isOpen = ref(false);
             </div>
         </header>
 
-        <main class="flex justify-center overflow-hidden">
-            <slot />
-        </main>
+        <slot />
     </div>
 </template>
 

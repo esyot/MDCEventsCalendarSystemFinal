@@ -1,26 +1,226 @@
 <script setup>
-import { useForm } from "@inertiajs/vue3";
 import MainLayout from "../../Layouts/MainLayout.vue";
 
 defineOptions({ layout: MainLayout });
+
+const isHasRecord = (day, month, year, events) => {
+    const validEvents = Array.isArray(events) ? events : [];
+    const [newYear, newMonth] = month.split("-").map(Number);
+    const date = new Date(year, newMonth - 1, day + 1);
+
+    const dateString = date.toISOString().split("T")[0];
+
+    return validEvents.some((event) => {
+        const eventDateString = new Date(event).toISOString().split("T")[0];
+        return eventDateString === dateString;
+    });
+};
+
+const openSingleEvent = (id) => {
+    document
+        .getElementById("preview-event-single" + id)
+        .classList.toggle("hidden");
+};
 </script>
 <template>
+    <div
+        id="eventsDetails"
+        class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-40"
+    >
+        <div class="bg-white rounded shadow-md">
+            <div
+                class="flex justify-between items-center border-b border-gray-200"
+            >
+                <h1 class="text-xl px-2 font-semibold">
+                    Events on
+                    <span class="text-red-500">{{ dateSelected }}</span>
+                </h1>
+                <button
+                    @click="closeEventsDetails()"
+                    class="px-2 text-2xl font-bold hover:opacity-50"
+                >
+                    &times;
+                </button>
+            </div>
+
+            <div class="">
+                <table class="w-[500px] border-collapse">
+                    <thead>
+                        <tr class="w-full bg-gray-200">
+                            <th
+                                class="text-center font-medium text-gray-700 border-b"
+                            >
+                                Event Name
+                            </th>
+                            <th
+                                class="text-center font-medium text-gray-700 border-b"
+                            >
+                                Date
+                            </th>
+                            <th
+                                class="text-center font-medium text-gray-700 border-b"
+                            >
+                                Date End
+                            </th>
+                            <th
+                                class="text-center font-medium text-gray-700 border-b"
+                            >
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="event in filteredEvents"
+                            :key="event.id"
+                            class="text-center hover:bg-gray-200 cursor-pointer"
+                        >
+                            <td>{{ event.name }}</td>
+                            <td>{{ formatDate(event.date_start) }}</td>
+                            <td>{{ formatDate(event.date_end) }}</td>
+                            <td>
+                                <button
+                                    @click="openSingleEvent(event.id)"
+                                    class="hover:opacity-50"
+                                >
+                                    <i class="fas fa-eye text-blue-500"></i>
+                                </button>
+                            </td>
+                            <div
+                                :id="'preview-' + event.id"
+                                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+                            >
+                                <div class="bg-white rounded p-2">
+                                    <div>
+                                        <h1 class="text-xl font-semibold">
+                                            Event Details
+                                        </h1>
+                                    </div>
+
+                                    <div class="flex flex-col items-start">
+                                        <span
+                                            ><strong>Name:</strong>
+                                            {{ event.name }}</span
+                                        >
+
+                                        <span
+                                            ><strong>Department:</strong>
+                                            {{ event.department_name }}
+                                        </span>
+                                        <span
+                                            ><strong>Term:</strong>
+                                            {{ event.term_name }}
+                                        </span>
+                                        <span>
+                                            <strong>Date Start:</strong>
+
+                                            {{ formatDate(event.date_start) }}
+                                            {{ formatTime(event.time_start) }}
+                                        </span>
+                                        <span
+                                            ><strong>Date End:</strong>
+                                            {{ formatDate(event.date_end) }}
+
+                                            {{ formatTime(event.time_end) }}
+                                        </span>
+                                        <span
+                                            ><strong>Venue:</strong>
+                                            {{ event.venue_name }} at
+                                            {{ event.venue_building }}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        @click="openSingleEvent(event.id)"
+                                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                :id="'preview-event-single' + event.event_id"
+                                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+                            >
+                                <div class="bg-white rounded p-2">
+                                    <div>
+                                        <h1 class="text-xl font-semibold">
+                                            Event Details
+                                        </h1>
+                                    </div>
+
+                                    <div class="flex flex-col items-start">
+                                        <span
+                                            ><strong>Name:</strong>
+                                            {{ event.name }}</span
+                                        >
+
+                                        <span
+                                            ><strong>Department:</strong>
+                                            {{ event.department_name }}
+                                        </span>
+                                        <span
+                                            ><strong>Term:</strong>
+                                            {{ event.term_name }}
+                                        </span>
+                                        <span>
+                                            <strong>Date Start:</strong>
+
+                                            {{ formatDate(event.date_start) }}
+                                            {{ formatTime(event.time_start) }}
+                                        </span>
+                                        <span
+                                            ><strong>Date End:</strong>
+                                            {{ formatDate(event.date_end) }}
+
+                                            {{ formatTime(event.time_end) }}
+                                        </span>
+                                        <span
+                                            ><strong>Venue:</strong>
+                                            {{ event.venue_name }} at
+                                            {{ event.venue_building }}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        @click="openSingleEvent(event.event_id)"
+                                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <div class="flex flex-grow p-6 space-x-2 overflow-y-auto">
         <div class="flex flex-col space-y-2 w-full">
             <div
                 class="flex flex-col bg-gray-100 border-2 border-gray-500 rounded-xl"
             >
-                <div class="border-b-2 border-gray-500 w-full p-2">
+                <div
+                    class="flex items-center bg-blue-400 rounded-t-lg justify-between border-b-2 border-gray-500 w-full p-2"
+                >
                     <input
                         type="month"
                         v-model="currentMonth"
-                        class="bg-transparent bg-white rounded p-2 border shadow-inner font-medium text-xl focus:outline-none"
+                        class="bg-transparent bg-white rounded border shadow-inner font-medium p-0.5 focus:outline-none"
                     />
+
+                    <a
+                        href="/calendar"
+                        class="px-2 hover:opacity-100 opacity-50"
+                    >
+                        <i class="fas fa-maximize"></i>
+                    </a>
                 </div>
-                <div class="w-full rounded-lg">
-                    <!-- Header Row for Days -->
+                <div class="w-full rounded-lg shadow-md">
                     <div
-                        class="flex bg-blue-300 justify-between px-4 sadow-md font-bold"
+                        class="flex bg-blue-100 border-b-2 border-gray-500 justify-around px-4 sadow-md font-bold"
                     >
                         <div class="flex-1 text-center text-red-500">SUN</div>
                         <div class="flex-1 text-center">MON</div>
@@ -39,15 +239,39 @@ defineOptions({ layout: MainLayout });
                             class="p-4"
                         >
                             <div
+                                @click="
+                                    [
+                                        isHasRecord(
+                                            day,
+                                            currentMonth,
+                                            currentYear,
+                                            events
+                                        )
+                                            ? eventsDetails(
+                                                  day + 1,
+                                                  currentMonth,
+                                                  currentYear,
+                                                  eventsWithDetails
+                                              )
+                                            : '',
+                                    ]
+                                "
                                 v-if="day"
                                 :class="[
+                                    isHasRecord(
+                                        day,
+                                        currentMonth,
+                                        currentYear,
+                                        events
+                                    )
+                                        ? 'bg-blue-500 hover:opacity-50 text-blue-100'
+                                        : 'hover:bg-gray-300',
                                     'flex justify-center items-center text-2xl hover:opacity-50 cursor-pointer',
                                     isSunday(index) ? 'text-red-500' : '',
                                 ]"
                             >
                                 {{ day }}
 
-                                <!-- Highlight current day, only for the current month -->
                                 <i
                                     :class="
                                         isToday(day, currentMonth, currentYear)
@@ -63,9 +287,11 @@ defineOptions({ layout: MainLayout });
             </div>
 
             <div
-                class="flex flex-col bg-gray-100 rounded-xl border-2 border-gray-500"
+                class="flex flex-col bg-gray-100 rounded-xl border-2 border-gray-500 shadow-md"
             >
-                <div class="px-2 border-b-2 border-gray-500">
+                <div
+                    class="px-2 border-b-2 border-gray-500 bg-blue-400 rounded-t-lg text-gray-100"
+                >
                     <h1 class="text-2xl font-medium">Today's Event</h1>
                 </div>
                 <div class="flex flex-col overflow-y-auto my-2">
@@ -80,11 +306,16 @@ defineOptions({ layout: MainLayout });
                         :key="index"
                         class="flex items-center shadow-md mx-2"
                     >
-                        <div class="ml-6">
-                            <p class="font-bold">{{ event.title }}</p>
-                            <span
-                                >{{ event.date }} at
-                                {{ formatTime(event.time_start) }} -
+                        <div class="flex space-x-1">
+                            <p class="font-bold">{{ event.name }}</p>
+
+                            <span>at</span>
+
+                            <span class="font-semibold">
+                                {{ formatTime(event.time_start) }}
+                            </span>
+                            <span>-</span>
+                            <span class="font-semibold">
                                 {{ formatTime(event.time_end) }}</span
                             >
                         </div>
@@ -94,13 +325,15 @@ defineOptions({ layout: MainLayout });
         </div>
 
         <div
-            class="flex w-[800px] flex-col bg-gray-100 rounded-xl border-2 border-gray-500"
+            class="flex w-[800px] flex-col bg-gray-100 rounded-xl border-2 border-gray-500 shadow-md"
         >
-            <div class="p-2 border-b-2 border-gray-500">
+            <div
+                class="p-2 border-b-2 border-gray-500 rounded-t-lg bg-blue-400 text-gray-100"
+            >
                 <h1 class="text-2xl font-medium">Event Updates</h1>
             </div>
-            <div class="">
-                <div class="">
+            <div class="h-full">
+                <div class="flex flex-col h-[80vh] overflow-y-auto">
                     <div
                         v-if="event_updates.length == 0"
                         class="flex justify-center text-xl"
@@ -113,7 +346,7 @@ defineOptions({ layout: MainLayout });
                         :key="index"
                         title="Click to preview"
                         @click="preview(event)"
-                        class="p-1 hover:bg-gray-200 cursor-pointer"
+                        class="p-1 hover:bg-gray-200 cursor-pointer last:rounded-b-lg"
                     >
                         <div
                             class="flex justify-between space-x-2 items-center"
@@ -155,7 +388,7 @@ defineOptions({ layout: MainLayout });
 
                                 <div class="flex justify-end">
                                     <small class="px-4">{{
-                                        timeAgo(event.created_at)
+                                        timeAgo(event.isApprovedByAdmin)
                                     }}</small>
                                 </div>
                             </div>
@@ -170,7 +403,7 @@ defineOptions({ layout: MainLayout });
         v-if="isModalOpen"
         class="flex fixed inset-0 bg-gray-800 justify-center items-center bg-opacity-50"
     >
-        <div class="bg-white p-4 rounded">
+        <div class="bg-white p-4 rounded shadow-md">
             <p><strong>Title:</strong> {{ selectedEvent.name }}</p>
 
             <p>
@@ -178,21 +411,22 @@ defineOptions({ layout: MainLayout });
                 {{ selectedEvent.venue_building }}
             </p>
 
-            <p><strong>Date Start:</strong> {{ selectedEvent.date_start }}</p>
             <p>
-                <strong>Time Start:</strong>
+                <strong>Date Start:</strong> {{ selectedEvent.date_start }}
+                at
                 {{ formatTime(selectedEvent.time_start) }}
             </p>
-            <p><strong>Date Start:</strong> {{ selectedEvent.date_end }}</p>
 
             <p>
-                <strong>Time End:</strong>
+                <strong>Date End:</strong> {{ selectedEvent.date_end }}
+                at
                 {{ formatTime(selectedEvent.time_end) }}
             </p>
-            <div class="flex justify-end items-center space-x-1">
+
+            <div class="flex justify-end items-center mt-2 space-x-1">
                 <button
                     @click="closeModal"
-                    class="p-2 border border-gray-300 text-gray-800 rounded"
+                    class="p-2 border border-gray-300 text-gray-800 hover:opacity-50 rounded"
                 >
                     Close
                 </button>
@@ -201,7 +435,7 @@ defineOptions({ layout: MainLayout });
                     href="/eventRequest"
                     class="p-2 bg-blue-500 text-blue-100 hover:opacity-50 rounded"
                 >
-                    View
+                    View in Event Requests
                 </a>
             </div>
         </div>
@@ -210,8 +444,13 @@ defineOptions({ layout: MainLayout });
 
 <script>
 const timeAgo = (dateString) => {
-    const now = new Date();
     const date = new Date(dateString);
+
+    if (isNaN(date)) {
+        return "Invalid date";
+    }
+
+    const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
 
     if (diffInSeconds < 60) {
@@ -244,6 +483,9 @@ const timeAgo = (dateString) => {
 
 export default {
     props: {
+        events: {
+            type: Array,
+        },
         event_updates: {
             type: Array,
             default: () => [],
@@ -251,6 +493,12 @@ export default {
         events_today: {
             type: Array,
             default: () => [],
+        },
+        eventsWithDetails: {
+            type: Array,
+        },
+        user_role: {
+            type: String,
         },
     },
     data() {
@@ -262,6 +510,8 @@ export default {
             currentYear: year,
             isModalOpen: false,
             selectedEvent: null,
+            filteredEvents: [],
+            dateSelected: "",
         };
     },
     computed: {
@@ -284,6 +534,17 @@ export default {
         },
     },
     methods: {
+        formatDate(date) {
+            const newdate = new Date(date);
+            const formattedDate = newdate.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+            });
+
+            return formattedDate;
+        },
+
         formatTime(time) {
             const [hours, minutes] = time.split(":");
             const formattedHours = hours % 12 || 12;
@@ -311,7 +572,46 @@ export default {
                 today.getFullYear() === year // Check if today matches the selected year
             );
         },
+        eventsDetails(day, month, currentYear, eventsWithDetails) {
+            if (!eventsWithDetails || eventsWithDetails.length === 0) {
+                console.error("No events available.");
+                // Make sure this is reactive
+                this.filteredEvents = [];
+                return;
+            }
+
+            // Correctly parse the month and year from the input string
+            const [newYear, newMonth] = month.split("-").map(Number);
+
+            // Create the Date object with proper year, month (0-based), and day
+            const date = new Date(newYear, newMonth - 1, day);
+
+            // Format the date as desired (Month Day, Year)
+            const formattedDate = date.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+            });
+
+            this.dateSelected = formattedDate;
+            this.daySelected = day;
+
+            const formattedInputDate = date.toISOString().split("T")[0];
+
+            this.filteredEvents = eventsWithDetails.filter((event) => {
+                return (
+                    event.date_start === formattedInputDate ||
+                    event.date_end === formattedInputDate
+                );
+            });
+
+            document.getElementById("eventsDetails").classList.toggle("hidden");
+        },
+        closeEventsDetails() {
+            document.getElementById("eventsDetails").classList.toggle("hidden");
+        },
     },
+
     mounted() {
         const now = new Date();
         const year = now.getFullYear();

@@ -15,13 +15,10 @@ use App\Models\Venue;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 
-class CalendarController extends Controller
+class GuestCalendarController extends Controller
 {
     public function index(Request $request)
     {
-
-
-        $user = Auth::user();
 
         $venues = Venue::all();
 
@@ -51,23 +48,13 @@ class CalendarController extends Controller
             ->whereNot('isApprovedByAdmin', null)
             ->pluck('date_start');
 
-
-        $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
-            ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
-            ->pluck('roles.role')
-            ->first();
-
-        return Inertia::render('Calendar/calendar', [
+        return Inertia::render('Guest/Calendar/calendar', [
             'departments' => $departments,
             'venues' => $venues,
-            'pageTitle' => 'Event Request',
-            'user' => $user,
+            'pageTitle' => 'Caledar',
             'events' => $events->toArray(),
             'eventsWithDetails' => $eventsWithDetails,
             'terms' => $terms,
-            'user_role' => $user_role,
-            'user_role_calendar' => $user_role,
             'currentDepartment' => $currentDepartment,
             'successMessage' => session('success'),
             'errorMessage' => session('error'),
@@ -78,6 +65,7 @@ class CalendarController extends Controller
     {
         $events = Event::whereYear('date_start', $request->currentYear)
             ->where('department_id', $request->department)
+            ->whereNot('isApprovedByAdmin', null)
             ->pluck('date_start');
 
 
@@ -100,17 +88,14 @@ class CalendarController extends Controller
                 'departments.name as department_name',
                 'terms.name as term_name',
             )
-            ->whereYear('date_start', $currentYear)->orderBy('date_start', 'ASC')->get();
+            ->whereNot('isApprovedByAdmin', null)
+            ->whereYear('date_start', $currentYear)
+            ->orderBy('date_start', 'ASC')->get();
 
         $terms = Term::all();
 
         $departments = Department::all();
 
-        $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
-            ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
-            ->pluck('roles.role')
-            ->first();
 
 
         $searchResults = DB::table('events')
@@ -124,12 +109,13 @@ class CalendarController extends Controller
                 'departments.name as department_name',
                 'terms.name as term_name',
             )
+            ->whereNot('isApprovedByAdmin', null)
             ->where('events.name', 'LIKE', '%' . $request->search_value . '%')
             ->whereYear('date_start', $request->currentYear)
             ->get();
 
 
-        return Inertia::render('Calendar/calendar', [
+        return Inertia::render('Guest/Calendar/calendar', [
             'departments' => $departments,
             'venues' => $venues,
             'pageTitle' => 'Event Request',
@@ -137,8 +123,6 @@ class CalendarController extends Controller
             'events' => $events->toArray(),
             'eventsWithDetails' => $eventsWithDetails,
             'terms' => $terms,
-            'user_role' => $user_role,
-            'user_role_calendar' => $user_role,
             'currentDepartment' => $currentDepartment,
             'successMessage' => session('success'),
             'search_value' => $request->search_value,

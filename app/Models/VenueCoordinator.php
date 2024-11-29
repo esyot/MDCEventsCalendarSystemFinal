@@ -14,11 +14,11 @@ class VenueCoordinator extends Model
     // In VenueCoordinator.php
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function venue()
     {
-        return $this->belongsTo(Venue::class);
+        return $this->belongsTo(Venue::class, 'venue_id', 'id');
     }
 }

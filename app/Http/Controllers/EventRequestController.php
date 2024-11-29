@@ -134,7 +134,7 @@ class EventRequestController extends Controller
         ]);
     }
 
-    // Delete a specific event request
+
     public function destroy($id)
     {
         $event = EventRequest::findOrFail($id);
@@ -146,13 +146,14 @@ class EventRequestController extends Controller
     public function create_request(Request $request)
     {
 
-
         $request->validate([
             'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240',
         ]);
 
+        $department = Department::where('accronym', $request->event_department_id)->first();
 
         $file = $request->file('activity_design');
+
         if ($file && $file->isValid()) {
             $directory = 'files/uploads';
 
@@ -161,7 +162,6 @@ class EventRequestController extends Controller
                 Storage::disk('public')->makeDirectory($directory);
             }
 
-            // Save the file
             $filename = $file->getClientOriginalName();
             $filePath = $file->storeAs($directory, $filename, 'public');
 
@@ -171,7 +171,7 @@ class EventRequestController extends Controller
                 'date_end' => $request->event_date_end,
                 'term_id' => $request->event_term_id,
                 'user_id' => Auth::user()->id,
-                'department_id' => $request->event_department_id,
+                'department_id' => $department->id,
                 'levels' => json_encode($request->event_levels),
                 'venue_id' => $request->event_venue,
                 'time_start' => date('H:i:s', strtotime($request->event_time_start)),
@@ -311,7 +311,7 @@ class EventRequestController extends Controller
                     'venue_id' => $request->venue_id,
                     'user_id' => Auth::user()->id,
                     'activity_design_file_name' => $filename,
-                    'comment' => '',
+                    'comment' => null,
 
                 ]);
 
@@ -332,7 +332,7 @@ class EventRequestController extends Controller
             'department_id' => $request->department_id,
             'venue_id' => $request->venue_id,
             'user_id' => Auth::user()->id,
-            'comment' => '',
+            'comment' => null,
 
         ]);
 

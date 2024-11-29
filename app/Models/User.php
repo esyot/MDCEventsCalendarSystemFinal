@@ -24,11 +24,7 @@ class User extends Authenticatable
     }
 
 
-    // A user has one teacher record (teacher table links users to departments)
-    public function teacher()
-    {
-        return $this->hasOne(Teacher::class);  // One user can have one teacher record
-    }
+
 
     // Full name as an accessor
     public function getFullNameAttribute()
@@ -36,9 +32,8 @@ class User extends Authenticatable
         return $this->fname . ' ' . $this->lname;
     }
 
-    public function venueCoordinators()
+    public function venues()
     {
-        return $this->hasMany(VenueCoordinator::class);
+        return $this->hasManyThrough(Venue::class, VenueCoordinator::class, 'user_id', 'id', 'id', 'venue_id');
     }
-
 }

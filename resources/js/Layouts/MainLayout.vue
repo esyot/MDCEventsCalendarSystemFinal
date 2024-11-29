@@ -21,9 +21,10 @@ const toggleDropdown = () => {
                     style="margin-top: -4px"
                 />
                 <hr class="border-t-1 border-white w-full" />
+                <h1 class="text-center font-semibold">MDC - SCHOOL CALENDAR</h1>
             </div>
 
-            <nav class="flex flex-col gap-4">
+            <nav class="flex flex-col gap-4 text-sm">
                 <a href="/dashboard" class="hover:bg-blue-700 p-2 rounded">
                     <i class="fas fa-gauge"></i>
                     Dashboard</a
@@ -64,7 +65,7 @@ const toggleDropdown = () => {
         </aside>
 
         <main class="w-full select-none overflow-hidden bg-gray-200">
-            <nav class="bg-white shadow p-4">
+            <nav class="bg-white shadow p-2">
                 <div class="flex justify-between items-center">
                     <h1 class="text-lg font-bold">{{ pageTitle }}</h1>
                     <div>
@@ -73,8 +74,10 @@ const toggleDropdown = () => {
                                 @click="toggleDropdown"
                                 class="flex items-center space-x-2 hover:opacity-50"
                             >
-                                <i class="fas fa-user"></i>
-                                <span>{{ user.lname }}, {{ user.fname }} </span>
+                                <i class="fas fa-user fa-sm"></i>
+                                <span class="text-sm"
+                                    >{{ user.lname }}, {{ user.fname }}
+                                </span>
                                 <i v-if="!isOpen" class="fas fa-chevron-down">
                                 </i>
                                 <i v-if="isOpen" class="fas fa-chevron-up"></i>
@@ -82,20 +85,47 @@ const toggleDropdown = () => {
 
                             <div
                                 v-if="isOpen"
-                                class="origin-top-right absolute right-0 mt-2 py-2 w-[100px] rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                                class="origin-top-right absolute right-0 mt-2 py-2 w-[100px] rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
                             >
                                 <div
                                     class="flex flex-col items-center space-y-2"
                                 >
-                                    <a href="/logout" class="hover:opacity-50"
-                                        >Logout</a
+                                    <button
+                                        class="hover:opacity-50"
+                                        onclick="document.getElementById('logout-confirm').classList.toggle('hidden');"
                                     >
+                                        Log out
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </nav>
+            <div
+                id="logout-confirm"
+                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 z-50 hidden"
+            >
+                <div class="bg-white rounded shadow-md">
+                    <header>
+                        <h1 class="p-4 text-lg">Are you sure to Log out?</h1>
+                    </header>
+                    <footer class="flex justify-end space-x-1 p-2">
+                        <button
+                            type="button"
+                            onclick="document.getElementById('logout-confirm').classList.toggle('hidden');"
+                            class="px-4 py-2 border border-gray-300 rounded text-gray-800 hover:opacity-50 rounded"
+                        >
+                            No
+                        </button>
+                        <a
+                            href="/logout"
+                            class="px-4 py-2 bg-red-500 text-red-100 hover:opacity-50 rounded"
+                            >Yes</a
+                        >
+                    </footer>
+                </div>
+            </div>
             <section>
                 <slot />
             </section>
