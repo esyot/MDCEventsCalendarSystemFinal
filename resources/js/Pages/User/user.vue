@@ -261,7 +261,7 @@ onMounted(() => {
             />
         </div>
         <button
-            v-if="user_role == 'super_admin'"
+            v-if="user_role == 'super_admin' || user_role == 'admin'"
             @click="toggleSearchUserFormModal()"
             class="bg-green-500 text-white py-2 px-4 rounded hover:opacity-90"
         >
@@ -326,13 +326,18 @@ onMounted(() => {
                             v-if="modalEditRoleId === user.id"
                             class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50"
                         >
-                            <div class="bg-white rounded w-[500px]">
+                            <div class="bg-white rounded-lg w-[500px] p-4">
                                 <form action="/user-role-update" method="GET">
-                                    <div class="flex items-center">
-                                        <h1 class="p-2">Edit Role for</h1>
-                                        <span class="font-medium">
-                                            {{ user.lname }},
-                                            {{ user.fname }}
+                                    <div class="flex items-center mb-4">
+                                        <h1
+                                            class="text-xl font-semibold text-gray-700"
+                                        >
+                                            Edit Role for
+                                        </h1>
+                                        <span
+                                            class="ml-2 text-lg font-medium text-gray-900"
+                                        >
+                                            {{ user.lname }}, {{ user.fname }}
                                         </span>
                                     </div>
 
@@ -351,30 +356,34 @@ onMounted(() => {
                                         <div
                                             v-for="role in rolesList"
                                             :key="role"
-                                            class="p-2"
+                                            class="mb-3"
                                         >
-                                            <label>
+                                            <label
+                                                class="flex items-center space-x-2 text-gray-700"
+                                            >
                                                 <input
                                                     type="radio"
                                                     name="role"
                                                     :value="role"
                                                     v-model="currentRole"
+                                                    class="form-radio text-blue-500"
                                                 />
-                                                {{ role }}
+                                                <span>{{ role }}</span>
                                             </label>
                                         </div>
                                     </div>
-                                    <div class="flex justify-between p-2">
+
+                                    <div class="flex justify-between p-2 mt-4">
                                         <button
                                             type="button"
                                             @click="modalEditRoleId = null"
-                                            class="px-4 py-2 bg-red-500 text-white rounded"
+                                            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
-                                            class="px-4 py-2 bg-blue-500 text-blue-100 hover:opacity-50 rounded"
+                                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                                         >
                                             Save Changes
                                         </button>

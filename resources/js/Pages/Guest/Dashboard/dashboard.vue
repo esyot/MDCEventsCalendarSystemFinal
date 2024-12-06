@@ -32,13 +32,20 @@ const clearFields = () => {
 const isHasRecord = (day, month, year, events) => {
     const validEvents = Array.isArray(events) ? events : [];
     const [newYear, newMonth] = month.split("-").map(Number);
-    const date = new Date(year, newMonth - 1, day + 1);
+    const date = new Date(year, newMonth - 1, day);
 
     const dateString = date.toISOString().split("T")[0];
 
     return validEvents.some((event) => {
-        const eventDateString = new Date(event).toISOString().split("T")[0];
-        return eventDateString === dateString;
+        // Parse event start and end dates and reset their time to midnight (00:00:00)
+        const eventStartDate = new Date(event.date_start);
+        eventStartDate.setHours(0, 0, 0, 0);
+
+        const eventEndDate = new Date(event.date_end);
+        eventEndDate.setHours(23, 59, 59, 999); // Set the end date to the last moment of the day
+
+        // Check if the given date falls within the event date range (inclusive)
+        return date >= eventStartDate && date <= eventEndDate;
     });
 };
 
@@ -154,23 +161,23 @@ const openSingleEvent = (id) => {
             </div>
 
             <div class="">
-                <table class="w-[500px] border-collapse">
+                <table class="w-[600px] border-collapse">
                     <thead>
                         <tr class="w-full bg-gray-200">
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
-                                Event Name
+                                Event
                             </th>
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
-                                Time Start
+                                Date Start
                             </th>
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
-                                Time End
+                                Date End
                             </th>
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
@@ -186,8 +193,14 @@ const openSingleEvent = (id) => {
                             class="text-center hover:bg-gray-200 cursor-pointer"
                         >
                             <td>{{ event.name }}</td>
-                            <td>{{ formatTime(event.time_start) }}</td>
-                            <td>{{ formatTime(event.time_end) }}</td>
+                            <td>
+                                {{ formatDate(event.date_start) }}
+                                {{ formatTime(event.time_start) }}
+                            </td>
+                            <td>
+                                {{ formatDate(event.date_end) }}
+                                {{ formatTime(event.time_end) }}
+                            </td>
                             <td>
                                 <button
                                     @click="openSingleEvent(event.id)"
@@ -225,12 +238,13 @@ const openSingleEvent = (id) => {
                                             <strong>Date Start:</strong>
 
                                             {{ formatDate(event.date_start) }}
+                                            <span>at</span>
                                             {{ formatTime(event.time_start) }}
                                         </span>
                                         <span
                                             ><strong>Date End:</strong>
                                             {{ formatDate(event.date_end) }}
-
+                                            <span>at</span>
                                             {{ formatTime(event.time_end) }}
                                         </span>
                                         <span
@@ -683,9 +697,18 @@ export default {
             const formattedInputDate = date.toISOString().split("T")[0];
 
             this.filteredEvents = eventsWithDetails.filter((event) => {
+                // Convert event's date_start and date_end to ISO format (YYYY-MM-DD)
+                const eventStartDate = new Date(event.date_start)
+                    .toISOString()
+                    .split("T")[0];
+                const eventEndDate = new Date(event.date_end)
+                    .toISOString()
+                    .split("T")[0];
+
+                // Check if the selected date is within the event's date range (inclusive)
                 return (
-                    event.date_start === formattedInputDate ||
-                    event.date_end === formattedInputDate
+                    formattedInputDate >= eventStartDate &&
+                    formattedInputDate <= eventEndDate
                 );
             });
 

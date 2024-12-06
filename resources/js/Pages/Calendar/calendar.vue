@@ -82,13 +82,21 @@ const closeErrorMessage = () => {
 const isHasRecord = (day, month, year, events) => {
     const validEvents = Array.isArray(events) ? events : [];
 
+    // Create the given date and set the time to midnight (00:00:00)
     const date = new Date(year, month - 1, day);
+    date.setHours(0, 0, 0, 0); // Reset time to 00:00:00
 
-    const dateString = date.toISOString().split("T")[0];
-
+    // Iterate through events to check if the date is within the event date range
     return validEvents.some((event) => {
-        const eventDateString = new Date(event).toISOString().split("T")[0];
-        return eventDateString === dateString;
+        // Parse event start and end dates and reset their time to midnight (00:00:00)
+        const eventStartDate = new Date(event.date_start);
+        eventStartDate.setHours(0, 0, 0, 0);
+
+        const eventEndDate = new Date(event.date_end);
+        eventEndDate.setHours(23, 59, 59, 999); // Set the end date to the last moment of the day
+
+        // Check if the given date falls within the event date range (inclusive)
+        return date >= eventStartDate && date <= eventEndDate;
     });
 };
 
@@ -156,134 +164,155 @@ const openSingleSearchedEvent = (id) => {
         id="eventsDetails"
         class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-40"
     >
-        <div class="bg-white rounded shadow-md">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6">
             <div
-                class="flex justify-between items-center border-b border-gray-200"
+                class="flex justify-between items-center mb-4 border-b border-gray-200"
             >
-                <h1 class="text-xl px-2 font-semibold">
+                <h1 class="text-2xl font-semibold">
                     Events on
                     <span class="text-red-500">{{ dateSelected }}</span>
                 </h1>
                 <button
                     @click="closeEventsDetails()"
-                    class="px-2 text-2xl font-bold hover:opacity-50"
+                    class="text-2xl font-bold text-gray-600 hover:text-gray-900"
                 >
                     &times;
                 </button>
             </div>
 
-            <div class="">
-                <table class="w-[600px] border-collapse">
-                    <thead>
-                        <tr class="w-full bg-gray-200">
-                            <th
-                                class="text-center font-medium text-gray-700 border-b"
-                            >
-                                Event Name
-                            </th>
-                            <th
-                                class="text-center font-medium text-gray-700 border-b"
-                            >
-                                Time Start
-                            </th>
-                            <th
-                                class="text-center font-medium text-gray-700 border-b"
-                            >
-                                Time End
-                            </th>
-                            <th
-                                class="text-center font-medium text-gray-700 border-b"
-                            >
-                                Action
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="event in filteredEvents"
-                            :key="event.id"
-                            class="text-center hover:bg-gray-200 cursor-pointer"
-                        >
-                            <td>{{ event.name }}</td>
-                            <td>
-                                {{ formatTime(event.time_start) }}
-                            </td>
-                            <td>
-                                {{ formatTime(event.time_end) }}
-                            </td>
-                            <td>
-                                <button
-                                    @click="openSingleEvent(event.id)"
-                                    class="hover:opacity-50"
-                                >
-                                    <i class="fas fa-eye text-blue-500"></i>
-                                </button>
-                            </td>
-                            <div
-                                :id="'preview-' + event.id"
-                                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
-                            >
-                                <div class="bg-white rounded p-2">
-                                    <div>
-                                        <h1 class="text-xl font-semibold">
-                                            Event Details
-                                        </h1>
-                                    </div>
-
-                                    <div class="flex flex-col items-start">
-                                        <span
-                                            ><strong>Name:</strong>
-                                            {{ event.name }}</span
-                                        >
-
-                                        <span
-                                            ><strong>Department:</strong>
-                                            {{ event.department_name }}
-                                        </span>
-                                        <span
-                                            ><strong>Term:</strong>
-                                            {{ event.term_name }}
-                                        </span>
-                                        <span>
-                                            <strong>Date Start:</strong>
-
-                                            {{ formatDate(event.date_start) }}
-                                            <span>at</span>
-                                            {{ formatTime(event.time_start) }}
-                                        </span>
-                                        <span
-                                            ><strong>Date End:</strong>
-                                            {{ formatDate(event.date_end) }}
-                                            <span>at</span>
-                                            {{ formatTime(event.time_end) }}
-                                        </span>
-                                        <span
-                                            ><strong>Venue:</strong>
-                                            {{ event.venue_name }} at
-                                            {{ event.venue_building }}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        @click="openSingleEvent(event.id)"
-                                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="flex justify-end p-2">
-                    <button
-                        v-if="user_role != 'venue_coordinator'"
-                        @click="openCreateEventModal(daySelected)"
-                        class="px-4 py-2 bg-blue-500 text-blue-100 rounded hover:opacity-50"
+            <table class="w-full table-auto border-collapse">
+                <thead>
+                    <tr class="bg-gray-500 text-white">
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Event Name
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Date Start
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Date End
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Status
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Action
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="event in filteredEvents"
+                        :key="event.id"
+                        class="text-center hover:bg-gray-200 cursor-pointer"
                     >
-                        Add Event
-                    </button>
+                        <td class="px-4 py-2">{{ event.name }}</td>
+                        <td>
+                            {{ formatDate(event.date_start) }}
+                            {{ formatTime(event.time_start) }}
+                        </td>
+                        <td>
+                            {{ formatDate(event.date_end) }}
+                            {{ formatTime(event.time_end) }}
+                        </td>
+                        <td class="px-4 py-2 space-x-2 text-center">
+                            <small>Venue Coordinator:</small>
+                            <i
+                                :class="
+                                    event.isApprovedByVenueCoordinator != null
+                                        ? 'fas fa-check text-green-500'
+                                        : 'fas fa-x text-red-500'
+                                "
+                            ></i>
+                            <small>Admin:</small>
+                            <i
+                                :class="
+                                    event.isApprovedByAdmin != null
+                                        ? 'fas fa-check text-green-500'
+                                        : 'fas fa-x text-red-500'
+                                "
+                            ></i>
+                        </td>
+                        <td class="px-4 py-2">
+                            <button
+                                @click="openSingleEvent(event.id)"
+                                class="text-blue-500 hover:opacity-75"
+                            >
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="flex justify-end p-2">
+                <button
+                    v-if="user_role != 'venue_coordinator'"
+                    @click="openCreateEventModal(daySelected)"
+                    class="px-4 py-2 bg-blue-500 text-blue-100 rounded hover:opacity-50"
+                >
+                    Add Event
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div
+        v-for="event in filteredEvents"
+        :key="'preview-' + event.id"
+        :id="'preview-' + event.id"
+        class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+    >
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-lg w-full">
+            <div class="mb-4">
+                <h1 class="text-2xl font-semibold text-gray-800">
+                    Event Details
+                </h1>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="font-semibold">Name:</span>
+                    <span>{{ event.name }}</span>
                 </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold">Department:</span>
+                    <span>{{ event.department_name }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold">Term:</span>
+                    <span>{{ event.term_name }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold">Date Start:</span>
+                    <span>
+                        {{ formatDate(event.date_start) }} at
+                        {{ formatTime(event.time_start) }}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold">Date End:</span>
+                    <span>
+                        {{ formatDate(event.date_end) }} at
+                        {{ formatTime(event.time_end) }}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold">Venue:</span>
+                    <span>
+                        {{ event.venue_name }} at {{ event.venue_building }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button
+                    @click="openSingleEvent(event.id)"
+                    class="w-full px-4 py-2 border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                    Close
+                </button>
             </div>
         </div>
     </div>
@@ -296,29 +325,37 @@ const openSingleSearchedEvent = (id) => {
         id="search-results-form"
         class="flex fixed inset-0 bg-gray-800 bg-opacity-50 justify-center items-center z-50"
     >
-        <div class="bg-white rounded shadow-md">
-            <div class="flex justify-between items-center px-2">
-                <h1 class="text-xl">
-                    Search Results of <span>"{{ search_value }}"</span>
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-semibold">
+                    Search Results for
+                    <span class="font-bold">"{{ search_value }}"</span>
                 </h1>
                 <button
                     onclick="document.getElementById('search-results-form').classList.toggle('hidden')"
-                    class="text-2xl font-bold hover:opacity-50"
+                    class="text-2xl font-bold text-gray-600 hover:text-gray-900"
                 >
                     &times;
                 </button>
             </div>
-            <table class="w-[500px] border-collapse">
+            <table class="w-full table-auto border-collapse">
                 <thead>
-                    <tr class="w-full bg-gray-500 text-white">
-                        <th class="text-center font-medium border-b">
+                    <tr class="bg-gray-500 text-white">
+                        <th class="text-center font-medium px-4 py-2 border-b">
                             Event Name
                         </th>
-                        <th class="text-center font-medium border-b">Date</th>
-                        <th class="text-center font-medium border-b">
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Date
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
                             Date End
                         </th>
-                        <th class="text-center font-medium border-b">Action</th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Status
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
+                            Action
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -327,80 +364,124 @@ const openSingleSearchedEvent = (id) => {
                         :key="result.id"
                         class="text-center hover:bg-gray-200 cursor-pointer"
                     >
-                        <td>{{ result.name }}</td>
-                        <td>{{ formatDate(result.date_start) }}</td>
-                        <td>{{ formatDate(result.date_end) }}</td>
-                        <td>
+                        <td class="px-4 py-2">{{ result.name }}</td>
+                        <td class="px-4 py-2">
+                            {{ formatDate(result.date_start) }}
+                        </td>
+                        <td class="px-4 py-2">
+                            {{ formatDate(result.date_end) }}
+                        </td>
+                        <td class="px-4 py-2 space-x-2 text-center">
+                            <small>Venue Coordinator:</small>
+                            <i
+                                :class="
+                                    result.isApprovedByVenueCoordinator != null
+                                        ? 'fas fa-check text-green-500'
+                                        : 'fas fa-x text-red-500'
+                                "
+                            ></i>
+                            <small>Admin:</small>
+                            <i
+                                :class="
+                                    result.isApprovedByAdmin != null
+                                        ? 'fas fa-check text-green-500'
+                                        : 'fas fa-x text-red-500'
+                                "
+                            ></i>
+                        </td>
+
+                        <td class="px-4 py-2">
                             <button
                                 @click="
                                     openSingleSearchedEvent(result.event_id)
                                 "
-                                class="hover:opacity-50"
+                                class="text-blue-500 hover:opacity-75"
                             >
-                                <i class="fas fa-eye text-blue-500"></i>
+                                <i class="fas fa-eye"></i>
                             </button>
                         </td>
-
-                        <div
-                            :id="'preview-searched-' + result.event_id"
-                            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
-                        >
-                            <div class="bg-white rounded p-2">
-                                <div>
-                                    <h1 class="text-xl font-semibold">
-                                        Event Details
-                                    </h1>
-                                </div>
-
-                                <div class="flex flex-col items-start">
-                                    <span
-                                        ><strong>Name:</strong>
-                                        {{ result.name }}</span
-                                    >
-
-                                    <span
-                                        ><strong>Department:</strong>
-                                        {{ result.department_name }}
-                                    </span>
-                                    <span
-                                        ><strong>Term:</strong>
-                                        {{ result.term_name }}
-                                    </span>
-                                    <span>
-                                        <strong>Date Start:</strong>
-                                        {{ formatDate(result.date_start) }}
-                                        <span>at</span>
-                                        {{ formatTime(result.time_start) }}
-                                    </span>
-
-                                    <span
-                                        ><strong>Date End:</strong>
-                                        {{ formatDate(result.date_end) }}
-                                        <span>at</span>
-                                        {{ formatTime(result.time_end) }}
-                                    </span>
-                                    <span
-                                        ><strong>Venue:</strong>
-                                        {{ result.venue_name }} at
-                                        {{ result.venue_building }}
-                                    </span>
-                                </div>
-
-                                <button
-                                    @click="
-                                        openSingleSearchedEvent(result.event_id)
-                                    "
-                                    class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
                     </tr>
                 </tbody>
             </table>
         </div>
+
+        <div
+            v-for="result in searchResults"
+            :id="'preview-searched-' + result.event_id"
+            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+        >
+            <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-auto">
+                <div class="mb-4 text-center">
+                    <h1 class="text-xl font-semibold">Event Details</h1>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Name:</span>
+                        <span>{{ result.name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Department:</span>
+                        <span>{{ result.department_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Term:</span>
+                        <span>{{ result.term_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Date Start:</span>
+                        <span
+                            >{{ formatDate(result.date_start) }} at
+                            {{ formatTime(result.time_start) }}</span
+                        >
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Date End:</span>
+                        <span
+                            >{{ formatDate(result.date_end) }} at
+                            {{ formatTime(result.time_end) }}</span
+                        >
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Venue:</span>
+                        <span
+                            >{{ result.venue_name }} at
+                            {{ result.venue_building }}</span
+                        >
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Venue:</span>
+                        <span class="space-x-2">
+                            <small>Venue Coordinator:</small>
+                            <i
+                                :class="
+                                    result.isApprovedByVenueCoordinator != null
+                                        ? 'fas fa-check text-green-500'
+                                        : 'fas fa-x text-red-500'
+                                "
+                            ></i>
+                            <small>Admin:</small>
+                            <i
+                                :class="
+                                    result.isApprovedByAdmin != null
+                                        ? 'fas fa-check text-green-500'
+                                        : 'fas fa-x text-red-500'
+                                "
+                            ></i>
+                        </span>
+                    </div>
+                </div>
+
+                <button
+                    @click="openSingleSearchedEvent(result.event_id)"
+                    class="mt-4 w-full px-4 py-2 border border-gray-300 text-gray-800 rounded hover:bg-gray-100 text-center"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
     </div>
+
     <!-- /Searched Results -->
 
     <div class="flex flex-col">
@@ -431,6 +512,7 @@ const openSingleSearchedEvent = (id) => {
                             <option :value="currentDepartment.id">
                                 {{ currentDepartment.name }}
                             </option>
+                            <option value="all">All</option>
                             <option
                                 v-for="department in departments"
                                 :key="department"
@@ -585,7 +667,7 @@ const openSingleSearchedEvent = (id) => {
                                             }}
                                         </span>
                                     </div>
-                                    <div class="grid grid-cols-7 gap-1 p-1">
+                                    <div class="grid grid-cols-7 p-1">
                                         <template
                                             v-for="dayOfWeek in daysOfWeek"
                                             :key="dayOfWeek"
@@ -607,34 +689,49 @@ const openSingleSearchedEvent = (id) => {
                                             v-for="(day, index) in month"
                                             :key="day"
                                         >
+                                            <!-- Line that "scratches" the day if there is a record -->
+
+                                            <!-- Day Box -->
                                             <div
                                                 v-if="day"
                                                 :class="[
                                                     isHasRecord(
-                                                        day + 1,
+                                                        day,
                                                         monthIndex + 1,
                                                         currentYear,
                                                         events
                                                     )
-                                                        ? 'text-blue-100 bg-blue-500'
+                                                        ? 'bg-blue-500 text-blue-100'
                                                         : '',
-
-                                                    'flex justify-center items-center h-6 text-xs',
-
+                                                    'flex flex-col justify-center items-center h-6 text-xs relative',
                                                     isSunday(index)
                                                         ? 'text-red-500'
                                                         : '',
-
                                                     isToday(monthIndex + 1, day)
                                                         ? 'font-bold'
                                                         : '',
                                                 ]"
                                             >
                                                 {{ day }}
-
+                                                <!-- <div
+                                                    v-if="
+                                                        isHasRecord(
+                                                            day,
+                                                            monthIndex + 1,
+                                                            currentYear,
+                                                            events
+                                                        )
+                                                    "
+                                                    :class="[
+                                                        'absolute top-1/2 left-0 right-0 border-t-2 border-blue-500 z-50',
+                                                        {
+                                                            'transform -translate-y-1/2': true,
+                                                        },
+                                                    ]"
+                                                ></div> -->
                                                 <i
                                                     :class="[
-                                                        'flex fixed bottom-3 text-green-500',
+                                                        'fixed mt-6 text-green-500 shadow-md',
                                                         {
                                                             'fas fa-circle text-[4px] font-bold':
                                                                 isToday(
@@ -646,6 +743,7 @@ const openSingleSearchedEvent = (id) => {
                                                     ]"
                                                 ></i>
                                             </div>
+
                                             <div v-else class="h-6"></div>
                                         </template>
                                     </div>
@@ -707,8 +805,8 @@ const openSingleSearchedEvent = (id) => {
                                                         ? 'text-red-500'
                                                         : ''
                                                 "
-                                                >{{ dayOfWeek }}</span
-                                            >
+                                                >{{ dayOfWeek }}
+                                            </span>
                                         </div>
                                     </template>
                                 </div>
@@ -727,13 +825,13 @@ const openSingleSearchedEvent = (id) => {
                                             @click="
                                                 [
                                                     isHasRecord(
-                                                        day + 1,
+                                                        day,
                                                         selectedMonth + 1,
                                                         currentYear,
                                                         events
                                                     )
                                                         ? eventsDetails(
-                                                              day + 1,
+                                                              day,
                                                               selectedMonth + 1,
                                                               currentYear,
                                                               eventsWithDetails
@@ -749,17 +847,16 @@ const openSingleSearchedEvent = (id) => {
                                             "
                                             :class="[
                                                 isHasRecord(
-                                                    day + 1,
+                                                    day,
                                                     selectedMonth + 1,
                                                     currentYear,
                                                     events
                                                 )
-                                                    ? 'hover:opacity-50 bg-blue-500 text-blue-100'
+                                                    ? 'bg-blue-500 text-blue-100 hover:opacity-50'
                                                     : 'hover:bg-gray-200',
                                                 isSunday(index)
                                                     ? 'text-red-500'
                                                     : '',
-                                                '',
                                                 {
                                                     'font-bold': isToday(
                                                         selectedMonth + 1,
@@ -768,6 +865,22 @@ const openSingleSearchedEvent = (id) => {
                                                 },
                                             ]"
                                         >
+                                            <!-- <div
+                                                v-if="
+                                                    isHasRecord(
+                                                        day,
+                                                        monthIndex + 1,
+                                                        currentYear,
+                                                        events
+                                                    )
+                                                "
+                                                :class="[
+                                                    'absolute relative top-1/2 left-0 right-0 border-t-2 border-blue-500 z-50',
+                                                    {
+                                                        'transform -translate-y-1/2': true,
+                                                    },
+                                                ]"
+                                            ></div> -->
                                             {{ day }}
 
                                             <i
@@ -1269,23 +1382,40 @@ export default {
                 return;
             }
 
-            const date = new Date(currentYear, selectedMonth - 1, day);
+            const date = new Date(currentYear, selectedMonth - 1, day + 1); // Adjust for selected day
+            const dateText = new Date(currentYear, selectedMonth - 1, day); // For displaying selected date
 
+            // Format the dates for display purposes
             const formattedDate = date.toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
                 year: "numeric",
             });
 
-            this.dateSelected = formattedDate;
+            const formattedDateNew = dateText.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+            });
+
+            this.dateSelected = formattedDateNew;
             this.daySelected = day;
 
-            const formattedInputDate = date.toISOString().split("T")[0];
+            const formattedInputDate = date.toISOString().split("T")[0]; // ISO string format of selected date (YYYY-MM-DD)
 
             this.filteredEvents = eventsWithDetails.filter((event) => {
+                // Convert event's date_start and date_end to ISO format (YYYY-MM-DD)
+                const eventStartDate = new Date(event.date_start)
+                    .toISOString()
+                    .split("T")[0];
+                const eventEndDate = new Date(event.date_end)
+                    .toISOString()
+                    .split("T")[0];
+
+                // Check if the selected date is within the event's date range (inclusive)
                 return (
-                    event.date_start === formattedInputDate ||
-                    event.date_end === formattedInputDate
+                    formattedInputDate >= eventStartDate &&
+                    formattedInputDate <= eventEndDate
                 );
             });
 

@@ -40,11 +40,11 @@ class EventRequestController extends Controller
 
         if ($user_role == 'event_coordinator') {
 
-
             $events = DB::table('events')
                 ->join('venues', 'events.venue_id', '=', 'venues.id')
                 ->join('departments', 'events.department_id', '=', 'departments.id')
                 ->join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
                     'events.*',
                     'events.id as event_id',
@@ -56,9 +56,13 @@ class EventRequestController extends Controller
                     'departments.id as department_id',
                     'departments.name as department_name',
                     'terms.id as term_id',
-                    'terms.name as term_name',
+                    'venues.id as venue_id',
+                    'users.fname as user_fname',
+                    'users.lname as user_lname',
                 )->where('user_id', Auth::user()->id)
                 ->get();
+
+
         } else if ($user_role == 'venue_coordinator') {
 
             $venuesAssignedIds = VenueCoordinator::where('user_id', Auth::user()->id)->get()->pluck('venue_id');
@@ -67,6 +71,7 @@ class EventRequestController extends Controller
                 ->join('venues', 'events.venue_id', '=', 'venues.id')
                 ->join('departments', 'events.department_id', '=', 'departments.id')
                 ->join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
                     'events.*',
                     'events.id as event_id',
@@ -79,6 +84,8 @@ class EventRequestController extends Controller
                     'departments.name as department_name',
                     'terms.id as term_id',
                     'terms.name as term_name',
+                    'users.fname as user_fname',
+                    'users.lname as user_lname',
                 )->whereIn('venue_id', $venuesAssignedIds)
                 ->get();
 
@@ -89,6 +96,7 @@ class EventRequestController extends Controller
                 ->join('venues', 'events.venue_id', '=', 'venues.id')
                 ->join('departments', 'events.department_id', '=', 'departments.id')
                 ->join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
                     'events.*',
                     'events.id as event_id',
@@ -101,6 +109,8 @@ class EventRequestController extends Controller
                     'departments.name as department_name',
                     'terms.id as term_id',
                     'terms.name as term_name',
+                    'users.fname as user_fname',
+                    'users.lname as user_lname',
                 )
                 ->get();
         }
@@ -108,7 +118,7 @@ class EventRequestController extends Controller
 
         return Inertia::render('EventRequest/eventRequest', [
             'events' => $events,
-            'pageTitle' => 'Events',
+            'pageTitle' => 'Requests',
             'user' => Auth::user(),
             'user_role' => $user_role,
             'venues' => $venues,
@@ -146,15 +156,14 @@ class EventRequestController extends Controller
     public function create_request(Request $request)
     {
 
-        $request->validate([
-            'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240',
-        ]);
-
         $department = Department::where('accronym', $request->event_department_id)->first();
 
         $file = $request->file('activity_design');
 
-        if ($file && $file->isValid()) {
+        if ($file != null) {
+            $request->validate([
+                'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240',
+            ]);
             $directory = 'files/uploads';
 
 
@@ -178,11 +187,26 @@ class EventRequestController extends Controller
                 'time_end' => date('H:i:s', strtotime($request->event_time_end)),
                 'activity_design_file_name' => $filename
             ]);
-            if ($event) {
-                return redirect()->route('calendar')->with('success', 'Event request has been successfully submitted.');
-            }
 
 
+        } else {
+            $event = Event::create([
+                'name' => $request->event_name,
+                'date_start' => $request->event_date_start,
+                'date_end' => $request->event_date_end,
+                'term_id' => $request->event_term_id,
+                'user_id' => Auth::user()->id,
+                'department_id' => $department->id,
+                'levels' => json_encode($request->event_levels),
+                'venue_id' => $request->event_venue,
+                'time_start' => date('H:i:s', strtotime($request->event_time_start)),
+                'time_end' => date('H:i:s', strtotime($request->event_time_end)),
+            ]);
+
+
+        }
+        if ($event) {
+            return redirect()->route('calendar')->with('success', 'Event request has been successfully submitted.');
         }
     }
 
@@ -280,7 +304,7 @@ class EventRequestController extends Controller
         if ($request->activity_design) {
 
             $request->validate([
-                'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240', // Add your file validation rules here
+                'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240',
             ]);
 
             // Handle the file upload

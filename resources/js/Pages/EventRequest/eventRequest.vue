@@ -22,18 +22,28 @@ const retractConfirm = (eventId) => {
         .getElementById("retract-venue-confirm-" + eventId)
         .classList.toggle("hidden");
 };
+
+const venueApproveConfirm = (id) => {
+    document
+        .getElementById("venue-approve-confirm-" + id)
+        .classList.toggle("hidden");
+};
 </script>
 
 <template>
-    <div class="p-2 w-full">
-        <div class="max-h-[560px] overflow-y-auto">
-            <table class="w-full">
-                <thead class="w-full">
+    <div class="overflow-x-auto mx-4 shadow-lg shadow-gray-300">
+        <div class="h-[600px] overflow-y-auto mt-4">
+            <table class="min-w-full bg-white border border-gray-300">
+                <thead
+                    class="sticky top-0 bg-gray-100 text-gray-600 uppercase text-sm leading-normal"
+                >
                     <tr class="bg-gray-300">
                         <th class="px-4 py-2 text-left text-center">
                             Event Name
                         </th>
-                        <th class="px-4 py-2 text-left text-center">Details</th>
+                        <th class="px-4 py-2 text-left text-center">
+                            Requested by
+                        </th>
 
                         <th
                             v-if="user_role == 'venue_coordinator'"
@@ -42,26 +52,21 @@ const retractConfirm = (eventId) => {
                             Requested Venue
                         </th>
                         <th class="px-4 py-2 text-center">Status</th>
-                        <th class="px-4 py-2 text-center">Actions</th>
-                        <!-- Removed width limitation -->
+                        <th class="px-4 py-2 text-center w-8">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Table body content here -->
-                </tbody>
-            </table>
-            <table class="w-full border">
                 <tbody>
                     <tr
                         v-for="(event, index) in events"
                         :key="index"
-                        class="bg-white border-b"
+                        class="bg-white border-b h-[40px]"
                     >
                         <td class="px-4 py-2 text-center">
                             {{ event.event_name }}
                         </td>
                         <td class="px-4 py-2 text-center">
-                            {{ event.event_name }}
+                            {{ event.user_fname }}
+                            {{ event.user_lname }}
                         </td>
 
                         <td
@@ -104,14 +109,20 @@ const retractConfirm = (eventId) => {
                             </button>
 
                             <button
-                                v-if="user_role == 'event_coordinator'"
+                                v-if="
+                                    user_role == 'event_coordinator' ||
+                                    user_role == 'super_admin'
+                                "
                                 @click="eventUpdate(event.event_id)"
                                 class="text-yellow-500 hover:text-yellow-700"
                             >
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button
-                                v-if="user_role == 'event_coordinator'"
+                                v-if="
+                                    user_role == 'event_coordinator' ||
+                                    user_role == 'super_admin'
+                                "
                                 @click="eventDelete(event.event_id)"
                                 class="text-red-500 hover:text-red-700"
                             >
@@ -436,19 +447,20 @@ const retractConfirm = (eventId) => {
 
                                         <button
                                             type="button"
+                                            @click="
+                                                venueApproveConfirm(
+                                                    event.event_id
+                                                )
+                                            "
                                             v-if="
                                                 user_role ==
                                                     'venue_coordinator' &&
                                                 event.isApprovedByVenueCoordinator ==
-                                                    null &&
-                                                event.comment == null
-                                            "
-                                            @click="
-                                                retractConfirm(event.event_id)
+                                                    null
                                             "
                                             class="px-4 py-2 bg-green-500 text-green-100 hover:opacity-50 rounded"
                                         >
-                                            Approve
+                                            Approve Venue
                                         </button>
                                     </div>
                                 </form>
@@ -459,7 +471,10 @@ const retractConfirm = (eventId) => {
                                         event.event_id
                                     "
                                     method="GET"
-                                    v-if="user_role == 'admin'"
+                                    v-if="
+                                        uer_role == 'admin' &&
+                                        event.isApprovedByAdmin == null
+                                    "
                                     class="p-2"
                                 >
                                     <h1 class="font-medium">Comment:</h1>
@@ -481,10 +496,11 @@ const retractConfirm = (eventId) => {
 
                                 <div
                                     v-if="
-                                        user_role == 'event_coordinator' &&
-                                        event.isApprovedByVenueCoordinator !=
-                                            null &&
-                                        event.isApprovedByAdmin != null
+                                        user_role == 'event_coordinator' ||
+                                        (user_role == 'super_admin' &&
+                                            event.isApprovedByVenueCoordinator !=
+                                                null &&
+                                            event.isApprovedByAdmin != null)
                                     "
                                     class="flex p-2 justify-end"
                                 >
@@ -554,6 +570,10 @@ const retractConfirm = (eventId) => {
                                     </div>
 
                                     <form
+                                        v-if="
+                                            user_role == 'venue_coordinator' &&
+                                            event.isApprovedByAdmin == null
+                                        "
                                         :action="
                                             '/event-request/retract/' +
                                             user_role +
@@ -572,7 +592,7 @@ const retractConfirm = (eventId) => {
                                             <textarea
                                                 name="comment"
                                                 placeholder="Input comment here..."
-                                                class="w-full h-2 border rounded"
+                                                class="w-full h-10 border rounded"
                                                 required
                                             ></textarea>
                                         </div>
@@ -585,34 +605,70 @@ const retractConfirm = (eventId) => {
                                             </button>
                                         </div>
                                     </form>
+                                </div>
 
-                                    <div
-                                        id="approve-admin"
-                                        v-if="
-                                            user_role == 'admin' &&
-                                            event.isApprovedByAdmin != null
-                                        "
-                                        class="flex justify-end space-x-1 p-2"
-                                    >
-                                        <a
-                                            :href="
-                                                '/admin/event/admin/retract/' +
-                                                event.event_id
-                                            "
-                                            type="button"
-                                            class="px-4 py-2 border border-gray-300 hover:opacity-50 rounded"
-                                            >Retract
-                                        </a>
+                                <!-- venue approve form -->
+                                <div
+                                    :id="
+                                        'venue-approve-confirm-' +
+                                        event.event_id
+                                    "
+                                    class="flex fixed inset-0 justify-center bg-gray-800 bg-opacity-50 items-center hidden z-50"
+                                >
+                                    <div class="bg-white rounded">
+                                        <h1 class="p-2 text-xl">
+                                            Are you sure to confirm this venue?
+                                        </h1>
+                                        <div
+                                            class="flex p-2 justify-end space-x-1"
+                                        >
+                                            <button
+                                                @click="
+                                                    venueApproveConfirm(
+                                                        event.event_id
+                                                    )
+                                                "
+                                                class="px-4 py-2 border border-gray-300 rounded text-gray-500"
+                                            >
+                                                No
+                                            </button>
+                                            <a
+                                                :href="
+                                                    '/admin/event/approve/venue_coordinator/' +
+                                                    event.event_id
+                                                "
+                                                class="px-4 py-2 text-green-100 bg-green-500 rounded"
+                                                >Yes</a
+                                            >
+                                        </div>
                                     </div>
                                 </div>
+
+                                <!-- /venue approve form -->
                                 <div
-                                    id="approve-venue-coordinator"
                                     v-if="
-                                        user_role == 'venue_coordinator' &&
-                                        event.isApprovedByVenueCoordinator ==
-                                            null
+                                        user_role == 'admin' &&
+                                        event.isApprovedByAdmin != null
                                     "
+                                    id="approve-admin"
                                     class="flex justify-end space-x-1 p-2"
+                                >
+                                    <a
+                                        :href="
+                                            '/event-request/retract/' +
+                                            user_role +
+                                            '/' +
+                                            event.event_id
+                                        "
+                                        type="button"
+                                        class="px-4 py-2 border border-gray-300 hover:opacity-50 rounded"
+                                        >Retract
+                                    </a>
+                                </div>
+
+                                <div
+                                    :id="event.event_id"
+                                    class="flex justify-end space-x-1 p-2 z-50"
                                 >
                                     <div
                                         :id="
@@ -633,7 +689,7 @@ const retractConfirm = (eventId) => {
                                             >
                                                 <button
                                                     @click="
-                                                        retractConfirm(
+                                                        venueApproveConfirm(
                                                             event.event_id
                                                         )
                                                     "

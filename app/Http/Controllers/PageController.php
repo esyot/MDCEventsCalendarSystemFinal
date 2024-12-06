@@ -58,7 +58,8 @@ class PageController extends Controller
 
         $events = Event::
             whereNot('isApprovedByAdmin', null)
-            ->whereYear('date_start', $currentYear)->pluck('date_start');
+            ->whereYear('date_start', $currentYear)
+            ->get(['date_start', 'date_end']);
 
         $eventsWithDetails = DB::table('events')
             ->join('venues', 'events.venue_id', '=', 'venues.id')
@@ -110,13 +111,16 @@ class PageController extends Controller
             )
             ->whereNot('events.isApprovedByAdmin', null)
             ->where('events.date_start', '>=', Carbon::today())
-            ->orderBy('date_start', 'ASC')->get();
+            ->orderBy('isApprovedByAdmin', 'DESC')->get();
 
         $currentYear = now()->format('Y');
 
         $events = Event::
             whereNot('isApprovedByAdmin', null)
-            ->whereYear('date_start', $currentYear)->pluck('date_start');
+            ->whereYear('date_start', $currentYear)
+            ->get(['date_start', 'date_end']);
+
+
 
         $eventsWithDetails = DB::table('events')
             ->join('venues', 'events.venue_id', '=', 'venues.id')

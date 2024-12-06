@@ -36,7 +36,7 @@ class UserController extends Controller
 
         return Inertia::render('User/user', [
             'users' => $users->sortBy('lname')->values(),
-            'pageTitle' => 'Users',
+            'pageTitle' => 'List of Users',
             'user' => Auth::user(),
             'allUsers' => $allUsers,
             'roles' => $roles,

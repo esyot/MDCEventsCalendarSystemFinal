@@ -95,13 +95,21 @@ const closeErrorMessage = () => {
 const isHasRecord = (day, month, year, events) => {
     const validEvents = Array.isArray(events) ? events : [];
 
+    // Create the given date and set the time to midnight (00:00:00)
     const date = new Date(year, month - 1, day);
+    date.setHours(0, 0, 0, 0); // Reset time to 00:00:00
 
-    const dateString = date.toISOString().split("T")[0];
-
+    // Iterate through events to check if the date is within the event date range
     return validEvents.some((event) => {
-        const eventDateString = new Date(event).toISOString().split("T")[0];
-        return eventDateString === dateString;
+        // Parse event start and end dates and reset their time to midnight (00:00:00)
+        const eventStartDate = new Date(event.date_start);
+        eventStartDate.setHours(0, 0, 0, 0);
+
+        const eventEndDate = new Date(event.date_end);
+        eventEndDate.setHours(23, 59, 59, 999); // Set the end date to the last moment of the day
+
+        // Check if the given date falls within the event date range (inclusive)
+        return date >= eventStartDate && date <= eventEndDate;
     });
 };
 
@@ -281,12 +289,12 @@ const openSingleSearchedEvent = (id) => {
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
-                                Time Start
+                                Date Start
                             </th>
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
-                                Time End
+                                Date End
                             </th>
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
@@ -303,9 +311,11 @@ const openSingleSearchedEvent = (id) => {
                         >
                             <td>{{ event.name }}</td>
                             <td>
+                                {{ formatDate(event.date_start) }}
                                 {{ formatTime(event.time_start) }}
                             </td>
                             <td>
+                                {{ formatDate(event.date_end) }}
                                 {{ formatTime(event.time_end) }}
                             </td>
                             <td>
@@ -517,6 +527,7 @@ const openSingleSearchedEvent = (id) => {
                             <option :value="currentDepartment.id">
                                 {{ currentDepartment.name }}
                             </option>
+                            <option value="all">All</option>
                             <option
                                 v-for="department in departments"
                                 :key="department"
@@ -627,7 +638,7 @@ const openSingleSearchedEvent = (id) => {
                                                 v-if="day"
                                                 :class="[
                                                     isHasRecord(
-                                                        day + 1,
+                                                        day,
                                                         monthIndex + 1,
                                                         currentYear,
                                                         events
@@ -635,7 +646,7 @@ const openSingleSearchedEvent = (id) => {
                                                         ? 'text-blue-100 bg-blue-500'
                                                         : '',
 
-                                                    'flex justify-center items-center h-6 text-xs',
+                                                    'flex flex-col justify-center items-center h-6 text-xs',
 
                                                     isSunday(index)
                                                         ? 'text-red-500'
@@ -646,11 +657,12 @@ const openSingleSearchedEvent = (id) => {
                                                         : '',
                                                 ]"
                                             >
-                                                {{ day }}
-
+                                                <span>
+                                                    {{ day }}
+                                                </span>
                                                 <i
                                                     :class="[
-                                                        'flex fixed bottom-3 text-green-500',
+                                                        'fixed mt-5 text-green-500 shadow-md',
                                                         {
                                                             'fas fa-circle text-[4px] font-bold':
                                                                 isToday(
@@ -743,13 +755,13 @@ const openSingleSearchedEvent = (id) => {
                                             @click="
                                                 [
                                                     isHasRecord(
-                                                        day + 1,
+                                                        day,
                                                         selectedMonth + 1,
                                                         currentYear,
                                                         events
                                                     )
                                                         ? eventsDetails(
-                                                              day + 1,
+                                                              day,
                                                               selectedMonth + 1,
                                                               currentYear,
                                                               eventsWithDetails
@@ -763,7 +775,7 @@ const openSingleSearchedEvent = (id) => {
                                             "
                                             :class="[
                                                 isHasRecord(
-                                                    day + 1,
+                                                    day,
                                                     selectedMonth + 1,
                                                     currentYear,
                                                     events
@@ -1046,28 +1058,46 @@ export default {
                 return;
             }
 
-            const date = new Date(currentYear, selectedMonth - 1, day);
+            const date = new Date(currentYear, selectedMonth - 1, day + 1); // Adjust for selected day
+            const dateText = new Date(currentYear, selectedMonth - 1, day); // For displaying selected date
 
+            // Format the dates for display purposes
             const formattedDate = date.toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
                 year: "numeric",
             });
 
-            this.dateSelected = formattedDate;
+            const formattedDateNew = dateText.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+            });
+
+            this.dateSelected = formattedDateNew;
             this.daySelected = day;
 
-            const formattedInputDate = date.toISOString().split("T")[0];
+            const formattedInputDate = date.toISOString().split("T")[0]; // ISO string format of selected date (YYYY-MM-DD)
 
             this.filteredEvents = eventsWithDetails.filter((event) => {
+                // Convert event's date_start and date_end to ISO format (YYYY-MM-DD)
+                const eventStartDate = new Date(event.date_start)
+                    .toISOString()
+                    .split("T")[0];
+                const eventEndDate = new Date(event.date_end)
+                    .toISOString()
+                    .split("T")[0];
+
+                // Check if the selected date is within the event's date range (inclusive)
                 return (
-                    event.date_start === formattedInputDate ||
-                    event.date_end === formattedInputDate
+                    formattedInputDate >= eventStartDate &&
+                    formattedInputDate <= eventEndDate
                 );
             });
 
             document.getElementById("eventsDetails").classList.toggle("hidden");
         },
+
         closeEventsDetails() {
             document.getElementById("eventsDetails").classList.toggle("hidden");
         },

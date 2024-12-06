@@ -37,31 +37,43 @@ class CalendarController extends Controller
                 'departments.name as department_name',
                 'terms.name as term_name',
             )
-            ->whereNot('isApprovedByAdmin', null)
+
             ->whereYear('date_start', $currentYear)->orderBy('date_start', 'ASC')->get();
 
         $terms = Term::all();
 
         $departments = Department::all();
 
-        $currentDepartment = Department::first();
-
-        $events = Event::whereYear('date_start', $currentYear)
-            ->where('department_id', $currentDepartment->id)
-            ->whereNot('isApprovedByAdmin', null)
-            ->pluck('date_start');
-
-
+        $currentDepartment = ['id' => 'all', 'name' => 'All'];
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
             ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 
+        $events = Event::whereYear('date_start', $currentYear)
+            ->whereYear('date_end', $currentYear)
+            ->get(['date_start', 'date_end']);
+
+
+        if ($user_role == 'event_coordinator') {
+            $eventsMadeByUser = Event::whereYear('date_start', $currentYear)
+                ->where('user_id', Auth::user()->id)
+                ->get(['date_start', 'date_end']);
+
+            $allEventsApproved = Event::whereYear('date_start', $currentYear)
+                ->whereNotNull('isApprovedByAdmin')
+                ->get(['date_start', 'date_end']);
+
+
+            $events = $eventsMadeByUser->merge($allEventsApproved);
+        }
+
+
         return Inertia::render('Calendar/calendar', [
             'departments' => $departments,
             'venues' => $venues,
-            'pageTitle' => 'Event Request',
+            'pageTitle' => 'Calendar',
             'user' => $user,
             'events' => $events->toArray(),
             'eventsWithDetails' => $eventsWithDetails,
@@ -69,20 +81,27 @@ class CalendarController extends Controller
             'user_role' => $user_role,
             'user_role_calendar' => $user_role,
             'currentDepartment' => $currentDepartment,
-            'successMessage' => session('success'),
-            'errorMessage' => session('error'),
-            'selectedDate' => session('selectedDate'),
+            'successMessage' => session('success') ?? null,
+            'errorMessage' => session('error') ?? null,
         ]);
     }
     public function filter(Request $request)
     {
+
+
         $events = Event::whereYear('date_start', $request->currentYear)
             ->where('department_id', $request->department)
             ->pluck('date_start');
 
 
         $currentDepartment = Department::where('id', $request->department)->first();
+        if ($request->department == 'all') {
+            $events = Event::whereYear('date_start', $request->currentYear)
+                ->pluck('date_start');
 
+
+            $currentDepartment = ['id' => 'all', 'name' => 'All'];
+        }
 
         $user = Auth::user();
 

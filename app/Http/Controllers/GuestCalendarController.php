@@ -41,12 +41,12 @@ class GuestCalendarController extends Controller
 
         $departments = Department::all();
 
-        $currentDepartment = Department::first();
+        $currentDepartment = ['id' => 'all', 'name' => 'All'];
 
         $events = Event::whereYear('date_start', $currentYear)
-            ->where('department_id', $currentDepartment->id)
             ->whereNot('isApprovedByAdmin', null)
-            ->pluck('date_start');
+            ->get(['date_start', 'date_end']);
+
 
         return Inertia::render('Guest/Calendar/calendar', [
             'departments' => $departments,
@@ -71,6 +71,13 @@ class GuestCalendarController extends Controller
 
         $currentDepartment = Department::where('id', $request->department)->first();
 
+        if ($request->department == 'all') {
+            $events = Event::whereYear('date_start', $request->currentYear)
+                ->whereNot('isApprovedByAdmin', null)
+                ->pluck('date_start');
+
+            $currentDepartment = ['id' => 'all', 'name' => 'All'];
+        }
 
         $user = Auth::user();
 

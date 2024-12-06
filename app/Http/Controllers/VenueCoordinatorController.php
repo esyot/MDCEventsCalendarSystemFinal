@@ -44,7 +44,7 @@ class VenueCoordinatorController extends Controller
         return Inertia::render('VenueCoordinator/venueCoordinator', [
             'user' => $user,
             'venueCoordinators' => $venueCoordinators,
-            'pageTitle' => 'Venue Coordinators',
+            'pageTitle' => 'List of Venue Coordinators',
             'user_role' => $user_role,
             'venues' => $venues,
             'user_venue' => $user_venue,

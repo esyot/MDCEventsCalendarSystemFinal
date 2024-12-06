@@ -6,13 +6,20 @@ defineOptions({ layout: MainLayout });
 const isHasRecord = (day, month, year, events) => {
     const validEvents = Array.isArray(events) ? events : [];
     const [newYear, newMonth] = month.split("-").map(Number);
-    const date = new Date(year, newMonth - 1, day + 1);
+    const date = new Date(year, newMonth - 1, day);
 
     const dateString = date.toISOString().split("T")[0];
 
     return validEvents.some((event) => {
-        const eventDateString = new Date(event).toISOString().split("T")[0];
-        return eventDateString === dateString;
+        // Parse event start and end dates and reset their time to midnight (00:00:00)
+        const eventStartDate = new Date(event.date_start);
+        eventStartDate.setHours(0, 0, 0, 0);
+
+        const eventEndDate = new Date(event.date_end);
+        eventEndDate.setHours(23, 59, 59, 999); // Set the end date to the last moment of the day
+
+        // Check if the given date falls within the event date range (inclusive)
+        return date >= eventStartDate && date <= eventEndDate;
     });
 };
 
@@ -401,39 +408,39 @@ const openSingleEvent = (id) => {
 
     <div
         v-if="isModalOpen"
-        class="flex fixed inset-0 bg-gray-800 justify-center items-center bg-opacity-50"
+        class="flex fixed inset-0 bg-gray-800 justify-center items-center bg-opacity-50 z-50"
     >
-        <div class="bg-white p-4 rounded shadow-md">
-            <p><strong>Title:</strong> {{ selectedEvent.name }}</p>
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
+            <p class="text-lg font-semibold mb-2">
+                <strong>Title:</strong> {{ selectedEvent.name }}
+            </p>
 
-            <p>
+            <p class="text-black-700 mb-2">
                 <strong>Venue:</strong> {{ selectedEvent.venue_name }} at
                 {{ selectedEvent.venue_building }}
             </p>
 
-            <p>
-                <strong>Date Start:</strong> {{ selectedEvent.date_start }}
-                at
+            <p class="text-black-700 mb-2">
+                <strong>Date Start:</strong> {{ selectedEvent.date_start }} at
                 {{ formatTime(selectedEvent.time_start) }}
             </p>
 
-            <p>
-                <strong>Date End:</strong> {{ selectedEvent.date_end }}
-                at
+            <p class="text-black-700 mb-4">
+                <strong>Date End:</strong> {{ selectedEvent.date_end }} at
                 {{ formatTime(selectedEvent.time_end) }}
             </p>
 
-            <div class="flex justify-end items-center mt-2 space-x-1">
+            <div class="flex justify-end items-center space-x-4">
                 <button
                     @click="closeModal"
-                    class="p-2 border border-gray-300 text-gray-800 hover:opacity-50 rounded"
+                    class="p-2 border border-gray-300 text-gray-800 hover:bg-gray-200 rounded-lg transition duration-200"
                 >
                     Close
                 </button>
 
                 <a
                     href="/eventRequest"
-                    class="p-2 bg-blue-500 text-blue-100 hover:opacity-50 rounded"
+                    class="p-2 bg-blue-500 text-white hover:bg-blue-400 rounded-lg transition duration-200"
                 >
                     View in Event Requests
                 </a>
@@ -599,9 +606,18 @@ export default {
             const formattedInputDate = date.toISOString().split("T")[0];
 
             this.filteredEvents = eventsWithDetails.filter((event) => {
+                // Convert event's date_start and date_end to ISO format (YYYY-MM-DD)
+                const eventStartDate = new Date(event.date_start)
+                    .toISOString()
+                    .split("T")[0];
+                const eventEndDate = new Date(event.date_end)
+                    .toISOString()
+                    .split("T")[0];
+
+                // Check if the selected date is within the event's date range (inclusive)
                 return (
-                    event.date_start === formattedInputDate ||
-                    event.date_end === formattedInputDate
+                    formattedInputDate >= eventStartDate &&
+                    formattedInputDate <= eventEndDate
                 );
             });
 
