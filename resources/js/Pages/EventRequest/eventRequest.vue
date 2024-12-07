@@ -496,8 +496,11 @@ const venueApproveConfirm = (id) => {
 
                                 <div
                                     v-if="
-                                        user_role == 'event_coordinator' ||
                                         (user_role == 'super_admin' &&
+                                            event.isApprovedByVenueCoordinator !=
+                                                null &&
+                                            event.isApprovedByAdmin == null) ||
+                                        (user_role == 'event_coordinator' &&
                                             event.isApprovedByVenueCoordinator !=
                                                 null &&
                                             event.isApprovedByAdmin != null)
