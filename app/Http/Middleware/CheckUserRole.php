@@ -33,7 +33,7 @@ class CheckUserRole
             }
         } else {
 
-            return redirect()->route('login')->with('error', 'You need to be logged in to access this page.');
+            return redirect()->route('guest')->with('error', 'You need to be logged in to access this page.');
         }
 
 

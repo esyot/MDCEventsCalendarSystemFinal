@@ -257,6 +257,7 @@ const openSingleSearchedEvent = (id) => {
         </div>
     </div>
 
+    <!-- Events Details -->
     <div
         id="eventsDetails"
         class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-40"
@@ -289,6 +290,11 @@ const openSingleSearchedEvent = (id) => {
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
+                                Department
+                            </th>
+                            <th
+                                class="text-center font-medium text-gray-700 border-b"
+                            >
                                 Date Start
                             </th>
                             <th
@@ -296,6 +302,7 @@ const openSingleSearchedEvent = (id) => {
                             >
                                 Date End
                             </th>
+
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
@@ -307,9 +314,14 @@ const openSingleSearchedEvent = (id) => {
                         <tr
                             v-for="event in filteredEvents"
                             :key="event.id"
+                            :style="
+                                'background-color:' +
+                                departmentColor(event.department_id)
+                            "
                             class="p-4 text-center hover:bg-gray-200 cursor-pointer"
                         >
                             <td>{{ event.name }}</td>
+                            <td>{{ event.department_acronyms }}</td>
                             <td>
                                 {{ formatDate(event.date_start) }}
                                 {{ formatTime(event.time_start) }}
@@ -318,6 +330,7 @@ const openSingleSearchedEvent = (id) => {
                                 {{ formatDate(event.date_end) }}
                                 {{ formatTime(event.time_end) }}
                             </td>
+
                             <td>
                                 <button
                                     @click="openSingleEvent(event.id)"
@@ -326,64 +339,69 @@ const openSingleSearchedEvent = (id) => {
                                     <i class="fas fa-eye text-blue-500"></i>
                                 </button>
                             </td>
-                            <div
-                                :id="'preview-' + event.id"
-                                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
-                            >
-                                <div class="bg-white rounded p-2">
-                                    <div>
-                                        <h1 class="text-xl font-semibold">
-                                            Event Details
-                                        </h1>
-                                    </div>
-
-                                    <div class="flex flex-col items-start">
-                                        <span
-                                            ><strong>Name:</strong>
-                                            {{ event.name }}</span
-                                        >
-
-                                        <span
-                                            ><strong>Department:</strong>
-                                            {{ event.department_name }}
-                                        </span>
-                                        <span
-                                            ><strong>Term:</strong>
-                                            {{ event.term_name }}
-                                        </span>
-                                        <span>
-                                            <strong>Date Start:</strong>
-
-                                            {{ formatDate(event.date_start) }}
-                                            {{ formatTime(event.time_start) }}
-                                        </span>
-                                        <span
-                                            ><strong>Date End:</strong>
-                                            {{ formatDate(event.date_end) }}
-
-                                            {{ formatTime(event.time_end) }}
-                                        </span>
-                                        <span
-                                            ><strong>Venue:</strong>
-                                            {{ event.venue_name }} at
-                                            {{ event.venue_building }}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        @click="openSingleEvent(event.id)"
-                                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <!-- another loop -->
+    <div v-for="event in filteredEvents" :key="event.id">
+        <div
+            :id="'preview-' + event.id"
+            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+        >
+            <div class="bg-white rounded p-2">
+                <div>
+                    <h1 class="text-xl font-semibold">Event Details</h1>
+                </div>
+
+                <div class="flex flex-col items-start">
+                    <span><strong>Name:</strong> {{ event.name }}</span>
+
+                    <span
+                        ><strong>Department:</strong>
+                        {{ event.department_acronyms }}
+                    </span>
+                    <span
+                        ><strong>Term:</strong>
+                        {{ event.term_name }}
+                    </span>
+                    <span>
+                        <strong>Date Start:</strong>
+
+                        {{ formatDate(event.date_start) }}
+                        {{ formatTime(event.time_start) }}
+                    </span>
+                    <span
+                        ><strong>Date End:</strong>
+                        {{ formatDate(event.date_end) }}
+
+                        {{ formatTime(event.time_end) }}
+                    </span>
+                    <span
+                        ><strong>Venue:</strong> {{ event.venue_name }} at
+                        {{ event.venue_building }}
+                    </span>
+                </div>
+                <div class="flex justify-between flex-col">
+                    <span class="font-bold">Levels:</span>
+                    <span>{{ formatText(event.levels) }} </span>
+                </div>
+                <div class="flex w-full justify-center">
+                    <button
+                        @click="openSingleEvent(event.id)"
+                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- /another loop -->
 
     <!-- /Event Detais -->
 
@@ -408,8 +426,9 @@ const openSingleSearchedEvent = (id) => {
             <table class="w-[500px] border-collapse">
                 <thead>
                     <tr class="w-full bg-gray-500 text-white">
+                        <th class="text-center font-medium border-b">Name</th>
                         <th class="text-center font-medium border-b">
-                            Event Name
+                            Departments
                         </th>
                         <th class="text-center font-medium border-b">Date</th>
                         <th class="text-center font-medium border-b">
@@ -422,11 +441,17 @@ const openSingleSearchedEvent = (id) => {
                     <tr
                         v-for="result in searchResults"
                         :key="result.id"
+                        :style="
+                            'background-color:' +
+                            departmentColor(result.department_id)
+                        "
                         class="text-center hover:bg-gray-200 cursor-pointer"
                     >
                         <td>{{ result.name }}</td>
+                        <td>{{ result.department_acronyms }}</td>
                         <td>{{ formatDate(result.date_start) }}</td>
                         <td>{{ formatDate(result.date_end) }}</td>
+
                         <td>
                             <button
                                 @click="
@@ -437,66 +462,70 @@ const openSingleSearchedEvent = (id) => {
                                 <i class="fas fa-eye text-blue-500"></i>
                             </button>
                         </td>
-
-                        <div
-                            :id="'preview-searched-' + result.event_id"
-                            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
-                        >
-                            <div class="bg-white rounded p-2">
-                                <div>
-                                    <h1 class="text-xl font-semibold">
-                                        Event Details
-                                    </h1>
-                                </div>
-
-                                <div class="flex flex-col items-start">
-                                    <span
-                                        ><strong>Name:</strong>
-                                        {{ result.name }}</span
-                                    >
-
-                                    <span
-                                        ><strong>Department:</strong>
-                                        {{ result.department_name }}
-                                    </span>
-                                    <span
-                                        ><strong>Term:</strong>
-                                        {{ result.term_name }}
-                                    </span>
-                                    <span>
-                                        <strong>Date Start:</strong>
-
-                                        {{ formatDate(result.date_start) }}
-                                        {{ formatTime(result.time_start) }}
-                                    </span>
-                                    <span
-                                        ><strong>Date End:</strong>
-                                        {{ formatDate(result.date_end) }}
-
-                                        {{ formatTime(result.time_end) }}
-                                    </span>
-                                    <span
-                                        ><strong>Venue:</strong>
-                                        {{ result.venue_name }} at
-                                        {{ result.venue_building }}
-                                    </span>
-                                </div>
-
-                                <button
-                                    @click="
-                                        openSingleSearchedEvent(result.event_id)
-                                    "
-                                    class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- loop -->
+
+    <div v-for="result in searchResults" :key="result.id">
+        <div
+            :id="'preview-searched-' + result.event_id"
+            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+        >
+            <div class="bg-white rounded p-2">
+                <div>
+                    <h1 class="text-xl font-semibold">Event Details</h1>
+                </div>
+
+                <div class="flex flex-col items-start">
+                    <span><strong>Name:</strong> {{ result.name }}</span>
+
+                    <span
+                        ><strong>Department:</strong>
+                        {{ result.department_acronyms }}
+                    </span>
+                    <span
+                        ><strong>Term:</strong>
+                        {{ result.term_name }}
+                    </span>
+                    <span>
+                        <strong>Date Start:</strong>
+
+                        {{ formatDate(result.date_start) }}
+                        {{ formatTime(result.time_start) }}
+                    </span>
+                    <span
+                        ><strong>Date End:</strong>
+                        {{ formatDate(result.date_end) }}
+
+                        {{ formatTime(result.time_end) }}
+                    </span>
+                    <span
+                        ><strong>Venue:</strong> {{ result.venue_name }} at
+                        {{ result.venue_building }}
+                    </span>
+                </div>
+                <div class="flex justify-between flex-col">
+                    <span class="font-semibold">Levels:</span>
+                    <span>{{ formatText(result.levels) }} </span>
+                </div>
+                <div class="flex justify-center">
+                    <button
+                        @click="openSingleSearchedEvent(result.event_id)"
+                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- /loop -->
+
     <!-- /Searched Results -->
 
     <div class="flex flex-col">
@@ -894,6 +923,24 @@ export default {
         selectedDate: {},
     },
     methods: {
+        formatText(text) {
+            return text.replace(/[\[\]\""]/g, "").replace(/,/g, ", ");
+        },
+        departmentColor(deptIds) {
+            let deptIdString = deptIds.replace(/[\[\]\""\,\s+]/g, "");
+
+            let deptIdArray = deptIdString.split("").map(Number);
+            let deptIdSum = deptIdArray.reduce((acc, num) => acc + num, 0);
+
+            let hash = deptIdSum * 1234567;
+            hash = (hash + deptIdSum) * 9876543;
+
+            let hex =
+                "#" + ((hash & 0xffffff) + 0x1000000).toString(16).slice(1);
+            hex += "30";
+
+            return hex;
+        },
         onDepartmentChange(day) {
             const selectedDept = document.getElementById(
                 "department-" + day

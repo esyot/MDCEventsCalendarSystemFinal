@@ -8,6 +8,7 @@ use App\Http\Controllers\PDFController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\EventRequestController;
 use App\Http\Controllers\VenueCoordinatorController;
+use App\Http\Controllers\VenuesController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Middleware\CheckUserRolesAndPermissions;
@@ -55,7 +56,12 @@ Route::get('/unauthorized', function () {
 
 Route::middleware([CheckUserRole::class . ':super_admin,admin'])->group(function () {
 
+    //users
+    Route::get('/users/user-remove-department/{user}/{department}', [UserController::class, 'userDepartmentRemove']);
+    Route::get('/users/user-add-department', [UserController::class, 'userDepartmentAdd']);
+
     Route::get('/users', [UserController::class, 'index'])->name('users');
+    Route::get('/users/{user}', [UserController::class, 'index']);
     Route::get('/user-search', [UserController::class, 'search']);
     Route::get('/user-add-role', [UserController::class, 'user_add_role']);
     Route::get('/user-delete-role/{id}', [UserController::class, 'user_delete_role']);
@@ -89,9 +95,14 @@ Route::middleware([CheckUserRole::class . ':super_admin,admin,event_coordinator,
 Route::middleware([CheckUserRole::class . ':super_admin,admin,venue_coordinator'])->group(function () {
 
     Route::get('/admin/event/comment-add/{id}', [EventRequestController::class, 'addComment']);
-    Route::get('/admin/download-activity-design/{file}', [EventRequestController::class, 'downloadActivityDesign']);
+    Route::get('/admin/view-activity-design/{file}', [EventRequestController::class, 'viewActivityDesign']);
     Route::get('/event-request/retract/{role}/{event_id}', [EventRequestController::class, 'eventRetract']);
+
+    //venues
+    Route::get('/venues', [VenuesController::class, 'index']);
+
 
 
 });
+
 

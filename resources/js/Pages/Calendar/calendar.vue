@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import MainLayout from "../../Layouts/MainLayout.vue";
 import { Inertia } from "@inertiajs/inertia";
 
@@ -51,10 +51,30 @@ const updateCalendarDataForYear = () => {
 };
 
 const changeYear = (direction) => {
-    if (direction === "previous" && currentYear.value > 2020) {
+    if (direction === "prev" && currentYear.value > 2020) {
         currentYear.value--;
     } else if (direction === "next" && currentYear.value < 2030) {
         currentYear.value++;
+    }
+    updateCalendarDataForYear();
+};
+
+const changeMonthYear = (direction) => {
+    if (direction === "prev" && currentYear.value != 2020) {
+        selectedMonth.value = 11;
+        currentYear.value--;
+    } else if (direction === "next" && currentYear.value != 2030) {
+        selectedMonth.value = 0;
+        currentYear.value++;
+    }
+    updateCalendarDataForYear();
+};
+
+const changeMonth = (direction) => {
+    if (direction === "prev") {
+        selectedMonth.value--;
+    } else if (direction === "next") {
+        selectedMonth.value++;
     }
     updateCalendarDataForYear();
 };
@@ -82,20 +102,16 @@ const closeErrorMessage = () => {
 const isHasRecord = (day, month, year, events) => {
     const validEvents = Array.isArray(events) ? events : [];
 
-    // Create the given date and set the time to midnight (00:00:00)
     const date = new Date(year, month - 1, day);
-    date.setHours(0, 0, 0, 0); // Reset time to 00:00:00
+    date.setHours(0, 0, 0, 0);
 
-    // Iterate through events to check if the date is within the event date range
     return validEvents.some((event) => {
-        // Parse event start and end dates and reset their time to midnight (00:00:00)
         const eventStartDate = new Date(event.date_start);
         eventStartDate.setHours(0, 0, 0, 0);
 
         const eventEndDate = new Date(event.date_end);
-        eventEndDate.setHours(23, 59, 59, 999); // Set the end date to the last moment of the day
+        eventEndDate.setHours(23, 59, 59, 999);
 
-        // Check if the given date falls within the event date range (inclusive)
         return date >= eventStartDate && date <= eventEndDate;
     });
 };
@@ -108,6 +124,15 @@ const openSingleSearchedEvent = (id) => {
     document
         .getElementById("preview-searched-" + id)
         .classList.toggle("hidden");
+};
+
+const convertToDate = (month, day, year) => {
+    const date = new Date(year, month - 1, day);
+    const formattedYear = date.getFullYear();
+    const formattedMonth = String(date.getMonth() + 1).padStart(2, "0");
+    const formattedDay = String(date.getDate()).padStart(2, "0");
+
+    return `${formattedYear}-${formattedMonth}-${formattedDay}`;
 };
 </script>
 
@@ -193,6 +218,9 @@ const openSingleSearchedEvent = (id) => {
                             Date End
                         </th>
                         <th class="text-center font-medium px-4 py-2 border-b">
+                            Departments
+                        </th>
+                        <th class="text-center font-medium px-4 py-2 border-b">
                             Status
                         </th>
                         <th class="text-center font-medium px-4 py-2 border-b">
@@ -204,9 +232,13 @@ const openSingleSearchedEvent = (id) => {
                     <tr
                         v-for="event in filteredEvents"
                         :key="event.id"
-                        class="text-center hover:bg-gray-200 cursor-pointer"
+                        :style="
+                            'background-color:' +
+                            departmentColor(event.department_id)
+                        "
+                        class="text-center hover:opacity-50 cursor-pointer"
                     >
-                        <td class="px-4 py-2">{{ event.name }}</td>
+                        <td class="text-left px-4 py-2">{{ event.name }}</td>
                         <td>
                             {{ formatDate(event.date_start) }}
                             {{ formatTime(event.time_start) }}
@@ -215,8 +247,11 @@ const openSingleSearchedEvent = (id) => {
                             {{ formatDate(event.date_end) }}
                             {{ formatTime(event.time_end) }}
                         </td>
-                        <td class="px-4 py-2 space-x-2 text-center">
-                            <small>Venue Coordinator:</small>
+                        <td>{{ event.department_acronyms }}</td>
+                        <td
+                            class="flex items-center px-4 py-2 space-x-2 text-center"
+                        >
+                            <small>Venue:</small>
                             <i
                                 :class="
                                     event.isApprovedByVenueCoordinator != null
@@ -248,6 +283,7 @@ const openSingleSearchedEvent = (id) => {
             <div class="flex justify-end p-2">
                 <button
                     v-if="user_role != 'venue_coordinator'"
+                    :class="checkDateNow(dateSelected) ? 'hidden' : ''"
                     @click="openCreateEventModal(daySelected)"
                     class="px-4 py-2 bg-blue-500 text-blue-100 rounded hover:opacity-50"
                 >
@@ -278,8 +314,9 @@ const openSingleSearchedEvent = (id) => {
                 </div>
                 <div class="flex justify-between">
                     <span class="font-semibold">Department:</span>
-                    <span>{{ event.department_name }}</span>
+                    <span>{{ event.department_acronyms }}</span>
                 </div>
+
                 <div class="flex justify-between">
                     <span class="font-semibold">Term:</span>
                     <span>{{ event.term_name }}</span>
@@ -303,6 +340,10 @@ const openSingleSearchedEvent = (id) => {
                     <span>
                         {{ event.venue_name }} at {{ event.venue_building }}
                     </span>
+                </div>
+                <div class="flex justify-between flex-col">
+                    <span class="font-semibold">Levels:</span>
+                    <span>{{ formatText(event.levels) }} </span>
                 </div>
             </div>
 
@@ -371,6 +412,7 @@ const openSingleSearchedEvent = (id) => {
                         <td class="px-4 py-2">
                             {{ formatDate(result.date_end) }}
                         </td>
+
                         <td class="px-4 py-2 space-x-2 text-center">
                             <small>Venue Coordinator:</small>
                             <i
@@ -422,7 +464,7 @@ const openSingleSearchedEvent = (id) => {
                     </div>
                     <div class="flex justify-between">
                         <span class="font-semibold">Department:</span>
-                        <span>{{ result.department_name }}</span>
+                        <span>{{ result.department_acronyms }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="font-semibold">Term:</span>
@@ -509,7 +551,10 @@ const openSingleSearchedEvent = (id) => {
                             name="department"
                             class="block p-2 border border-gray-300 w-full rounded"
                         >
-                            <option :value="currentDepartment.id">
+                            <option
+                                v-if="currentDepartment.id != 'all'"
+                                :value="currentDepartment.id"
+                            >
                                 {{ currentDepartment.name }}
                             </option>
                             <option value="all">All</option>
@@ -519,6 +564,30 @@ const openSingleSearchedEvent = (id) => {
                                 :value="department.id"
                             >
                                 {{ department.name }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <select
+                            onchange="this.form.submit()"
+                            name="venue"
+                            id=""
+                            class="block p-2 border border-gray-300 w-full rounded"
+                        >
+                            <option
+                                v-if="currentVenue.id != 'all'"
+                                :value="currentVenue.id"
+                            >
+                                {{ currentVenue.name }} at
+                                {{ currentVenue.building }}
+                            </option>
+                            <option value="all">All</option>
+                            <option
+                                v-for="venue in venues"
+                                :value="venue.id"
+                                :key="venue"
+                            >
+                                {{ venue.name }} at {{ venue.building }}
                             </option>
                         </select>
                     </div>
@@ -563,7 +632,7 @@ const openSingleSearchedEvent = (id) => {
                                     .pdf</a
                                 >
                             </li>
-                            <li>
+                            <li v-if="currentDepartment.name != 'All'">
                                 <a
                                     :href="
                                         '/admin/events-export-to-pdf/view/single/' +
@@ -577,7 +646,7 @@ const openSingleSearchedEvent = (id) => {
                                 >
                             </li>
 
-                            <li>
+                            <li v-if="currentDepartment.name != 'All'">
                                 <a
                                     :href="
                                         '/admin/events-export-to-pdf/download/single/' +
@@ -601,7 +670,16 @@ const openSingleSearchedEvent = (id) => {
                     <div
                         class="w-full flex justify-between px-4 items-center border-b"
                     >
-                        <button @click="changeYear('previous')" class="">
+                        <button
+                            @click="
+                                selectedMonth != null
+                                    ? selectedMonth >= 1
+                                        ? changeMonth('prev')
+                                        : changeMonthYear('prev')
+                                    : changeYear('prev')
+                            "
+                            class=""
+                        >
                             <i
                                 class="fas fa-chevron-circle-left text-blue-500 fa-xl hover:opacity-50"
                             ></i>
@@ -622,7 +700,16 @@ const openSingleSearchedEvent = (id) => {
                                 {{ year }}
                             </option>
                         </select>
-                        <button @click="changeYear('next')" class="">
+                        <button
+                            @click="
+                                selectedMonth != null
+                                    ? selectedMonth >= 0 && selectedMonth <= 10
+                                        ? changeMonth('next')
+                                        : changeMonthYear('next')
+                                    : changeYear('next')
+                            "
+                            class=""
+                        >
                             <i
                                 class="fas fa-chevron-circle-right text-blue-500 fa-xl hover:opacity-50"
                             ></i>
@@ -713,22 +800,7 @@ const openSingleSearchedEvent = (id) => {
                                                 ]"
                                             >
                                                 {{ day }}
-                                                <!-- <div
-                                                    v-if="
-                                                        isHasRecord(
-                                                            day,
-                                                            monthIndex + 1,
-                                                            currentYear,
-                                                            events
-                                                        )
-                                                    "
-                                                    :class="[
-                                                        'absolute top-1/2 left-0 right-0 border-t-2 border-blue-500 z-50',
-                                                        {
-                                                            'transform -translate-y-1/2': true,
-                                                        },
-                                                    ]"
-                                                ></div> -->
+
                                                 <i
                                                     :class="[
                                                         'fixed mt-6 text-green-500 shadow-md',
@@ -836,14 +908,22 @@ const openSingleSearchedEvent = (id) => {
                                                               currentYear,
                                                               eventsWithDetails
                                                           )
-                                                        : openCreateEventModal(
+                                                        : checkDateNow(
+                                                              currentYear +
+                                                                  '-' +
+                                                                  (selectedMonth +
+                                                                      1) +
+                                                                  '-' +
+                                                                  day
+                                                          )
+                                                        ? ''
+                                                        : user_role !=
+                                                          'venue_coordinator'
+                                                        ? openCreateEventModal(
                                                               day
-                                                          ),
+                                                          )
+                                                        : '',
                                                 ]
-                                            "
-                                            :disabled="
-                                                user_role_calendar ===
-                                                'venue_coordinator'
                                             "
                                             :class="[
                                                 isHasRecord(
@@ -865,22 +945,6 @@ const openSingleSearchedEvent = (id) => {
                                                 },
                                             ]"
                                         >
-                                            <!-- <div
-                                                v-if="
-                                                    isHasRecord(
-                                                        day,
-                                                        monthIndex + 1,
-                                                        currentYear,
-                                                        events
-                                                    )
-                                                "
-                                                :class="[
-                                                    'absolute relative top-1/2 left-0 right-0 border-t-2 border-blue-500 z-50',
-                                                    {
-                                                        'transform -translate-y-1/2': true,
-                                                    },
-                                                ]"
-                                            ></div> -->
                                             {{ day }}
 
                                             <i
@@ -905,6 +969,33 @@ const openSingleSearchedEvent = (id) => {
                                                 enctype="multipart/form-data"
                                                 class="bg-white p-2 w-[500px] shadow-md rounded"
                                             >
+                                                <div>
+                                                    <input
+                                                        type="date"
+                                                        id="event_date_start"
+                                                        class="hidden"
+                                                        :value="
+                                                            convertToDate(
+                                                                selectedMonth +
+                                                                    1,
+                                                                day,
+                                                                currentYear
+                                                            )
+                                                        "
+                                                        name="event_date_start"
+                                                    />
+
+                                                    <input
+                                                        type="hidden"
+                                                        name="event_time_start"
+                                                        :value="startTime"
+                                                    />
+                                                    <input
+                                                        type="hidden"
+                                                        name="event_time_end"
+                                                        :value="endTime"
+                                                    />
+                                                </div>
                                                 <div
                                                     class="flex w-full justify-between mb-4"
                                                 >
@@ -942,61 +1033,295 @@ const openSingleSearchedEvent = (id) => {
                                                         &times;
                                                     </button>
                                                 </div>
-                                                <div>
-                                                    <input
-                                                        type="date"
-                                                        id="event_date_start"
-                                                        class="hidden"
-                                                        :value="
-                                                            convertToDate(
-                                                                selectedMonth +
-                                                                    1,
-                                                                day,
-                                                                currentYear
-                                                            )
-                                                        "
-                                                        name="event_date_start"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label for=""
-                                                        >Date End:</label
-                                                    >
-                                                    <input
-                                                        type="date"
-                                                        name="event_date_end"
-                                                        id=""
-                                                        :value="
-                                                            convertToDate(
-                                                                selectedMonth +
-                                                                    1,
-                                                                day,
-                                                                currentYear
-                                                            )
-                                                        "
-                                                        class="w-full block p-2 border border-gray-300 rounded shadow-inner"
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label for="">Time:</label>
-                                                    <div
-                                                        class="flex items-center space-x-2"
-                                                    >
+
+                                                <div
+                                                    class="flex items-center justify-between space-x-1"
+                                                >
+                                                    <div class="w-full">
+                                                        <label for=""
+                                                            >Venue:</label
+                                                        >
+
+                                                        <select
+                                                            name="event_venue"
+                                                            class="block p-2.5 border border-gray-300 w-full rounded"
+                                                            required
+                                                            @change="
+                                                                onVenueChange(
+                                                                    selectedDateForm,
+                                                                    $event
+                                                                        .target
+                                                                        .value,
+                                                                    eventsWithDetails
+                                                                )
+                                                            "
+                                                        >
+                                                            <option
+                                                                value=""
+                                                            ></option>
+                                                            <option
+                                                                v-for="venue in venues"
+                                                                :key="venue"
+                                                                :value="
+                                                                    venue.id
+                                                                "
+                                                            >
+                                                                {{ venue.name }}
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="w-full">
+                                                        <label for=""
+                                                            >Date End:</label
+                                                        >
                                                         <input
-                                                            type="time"
-                                                            name="event_time_start"
+                                                            type="date"
+                                                            name="event_date_end"
                                                             id=""
+                                                            v-model="
+                                                                selectedDateStartForm
+                                                            "
+                                                            @change="
+                                                                onVenueChange(
+                                                                    $event
+                                                                        .target
+                                                                        .value,
+                                                                    selectedVenue,
+                                                                    eventsWithDetails
+                                                                )
+                                                            "
                                                             class="block p-2 border border-gray-300 w-full rounded"
                                                             required
                                                         />
-                                                        <h1>To</h1>
-                                                        <input
-                                                            type="time"
-                                                            name="event_time_end"
-                                                            id=""
-                                                            class="block p-2 border border-gray-300 w-full rounded"
-                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div
+                                                        class="flex justify-between w-full border rounded mt-1 border-gray-300 items-center space-x-2"
+                                                    >
+                                                        <div class="p-2">
+                                                            <label
+                                                                for="ampmStart"
+                                                                class="block text-sm font-medium text-gray-700"
+                                                                >Start
+                                                                Time:</label
+                                                            >
+                                                            <div
+                                                                :class="
+                                                                    startTimeApproved
+                                                                        ? 'border-2 border-green-500 shadow-md'
+                                                                        : ''
+                                                                "
+                                                                class="flex p-1 rounded space-x-2"
+                                                            >
+                                                                <select
+                                                                    id="ampmStart"
+                                                                    name="ampmStart"
+                                                                    v-model="
+                                                                        selectedAMPMStart
+                                                                    "
+                                                                    class="border p-2 rounded focus:outline-none"
+                                                                    :disabled="
+                                                                        disableTimePicker
+                                                                    "
+                                                                    @change="
+                                                                        timeStartPeriodChange(
+                                                                            $event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    "
+                                                                    required
+                                                                >
+                                                                    <option>
+                                                                        AM
+                                                                    </option>
+                                                                    <option>
+                                                                        PM
+                                                                    </option>
+                                                                </select>
+                                                                <select
+                                                                    id="hourStart"
+                                                                    name="hourStart"
+                                                                    v-model="
+                                                                        selectedHourStart
+                                                                    "
+                                                                    class="border p-2 rounded focus:outline-none"
+                                                                    :disabled="
+                                                                        disableTimePicker
+                                                                    "
+                                                                    @change="
+                                                                        timeStartHourChange(
+                                                                            $event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    "
+                                                                    required
+                                                                >
+                                                                    <option
+                                                                        v-for="hour in hours"
+                                                                        :key="
+                                                                            hour
+                                                                        "
+                                                                        :disabled="
+                                                                            isHourDisabled(
+                                                                                hour,
+                                                                                selectedAMPMStart
+                                                                            )
+                                                                        "
+                                                                    >
+                                                                        {{
+                                                                            hour
+                                                                        }}
+                                                                    </option>
+                                                                </select>
+
+                                                                <select
+                                                                    id="minuteStart"
+                                                                    name="minuteStart"
+                                                                    v-model="
+                                                                        selectedMinuteStart
+                                                                    "
+                                                                    class="border p-2 rounded focus:outline-none"
+                                                                    :disabled="
+                                                                        disableTimePicker
+                                                                    "
+                                                                    @change="
+                                                                        timeStartMinutesChange(
+                                                                            $event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    "
+                                                                    required
+                                                                >
+                                                                    <option
+                                                                        v-for="minute in minutes"
+                                                                        :key="
+                                                                            minute
+                                                                        "
+                                                                    >
+                                                                        {{
+                                                                            minute
+                                                                        }}
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- End Time Picker -->
+                                                        <div class="p-2">
+                                                            <label
+                                                                for="ampmEnd"
+                                                                class="block text-sm font-medium text-gray-700"
+                                                                >End
+                                                                Time:</label
+                                                            >
+                                                            <div
+                                                                :class="
+                                                                    endTimeApproved
+                                                                        ? 'border-2 border-green-500 shadow-md'
+                                                                        : ''
+                                                                "
+                                                                class="flex p-1 rounded space-x-2"
+                                                            >
+                                                                <select
+                                                                    id="ampmEnd"
+                                                                    name="ampmEnd"
+                                                                    v-model="
+                                                                        selectedAMPMEnd
+                                                                    "
+                                                                    class="border p-2 rounded focus:outline-none"
+                                                                    :disabled="
+                                                                        startTimeDisable
+                                                                    "
+                                                                    @change="
+                                                                        timeEndPeriodChange(
+                                                                            $event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    "
+                                                                    required
+                                                                >
+                                                                    <option></option>
+                                                                    <option>
+                                                                        AM
+                                                                    </option>
+                                                                    <option>
+                                                                        PM
+                                                                    </option>
+                                                                </select>
+                                                                <select
+                                                                    id="hourEnd"
+                                                                    name="hourEnd"
+                                                                    v-model="
+                                                                        selectedHourEnd
+                                                                    "
+                                                                    class="border p-2 rounded focus:outline-none"
+                                                                    :disabled="
+                                                                        startTimeDisable
+                                                                    "
+                                                                    @change="
+                                                                        timeEndHourChange(
+                                                                            $event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    "
+                                                                    required
+                                                                >
+                                                                    <option
+                                                                        v-for="hour in hours"
+                                                                        :key="
+                                                                            hour
+                                                                        "
+                                                                        :disabled="
+                                                                            isHourDisabled(
+                                                                                hour,
+                                                                                selectedAMPMEnd
+                                                                            )
+                                                                        "
+                                                                        required
+                                                                    >
+                                                                        {{
+                                                                            hour
+                                                                        }}
+                                                                    </option>
+                                                                </select>
+                                                                <select
+                                                                    id="minuteEnd"
+                                                                    name="minuteEnd"
+                                                                    v-model="
+                                                                        selectedMinuteEnd
+                                                                    "
+                                                                    class="border p-2 rounded focus:outline-none"
+                                                                    :disabled="
+                                                                        startTimeDisable
+                                                                    "
+                                                                    @change="
+                                                                        timeEndMinutesChange(
+                                                                            $event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    "
+                                                                    required
+                                                                >
+                                                                    <option
+                                                                        v-for="minute in minutes"
+                                                                        :key="
+                                                                            minute
+                                                                        "
+                                                                    >
+                                                                        {{
+                                                                            minute
+                                                                        }}
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div>
@@ -1013,13 +1338,13 @@ const openSingleSearchedEvent = (id) => {
                                                     />
                                                 </div>
                                                 <div class="flex space-x-2">
-                                                    <div>
+                                                    <div class="h-full">
                                                         <label for=""
                                                             >Departments:</label
                                                         >
 
                                                         <select
-                                                            name="event_department_id"
+                                                            name="event_departments[]"
                                                             class="block p-2 border border-gray-300 w-full rounded"
                                                             required
                                                             :id="
@@ -1031,10 +1356,11 @@ const openSingleSearchedEvent = (id) => {
                                                                     day
                                                                 )
                                                             "
+                                                            multiple
+                                                            :size="
+                                                                departments.length
+                                                            "
                                                         >
-                                                            <option
-                                                                value=""
-                                                            ></option>
                                                             <option
                                                                 v-for="department in departments"
                                                                 :key="
@@ -1043,82 +1369,95 @@ const openSingleSearchedEvent = (id) => {
                                                                 :value="
                                                                     department.accronym
                                                                 "
+                                                                :selected="
+                                                                    isSelected(
+                                                                        department.accronym
+                                                                    )
+                                                                "
                                                             >
                                                                 {{
-                                                                    department.name
+                                                                    department.name +
+                                                                    "(" +
+                                                                    department.accronym +
+                                                                    ")"
                                                                 }}
                                                             </option>
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label for=""
-                                                            >Term:</label
-                                                        >
-                                                        <select
-                                                            name="event_term_id"
-                                                            id=""
-                                                            class="w-full block p-2 border border-gray-300 rounded shadow-inner"
-                                                            required
-                                                        >
-                                                            <option
-                                                                v-for="term in terms"
-                                                                :key="term"
-                                                                :value="term.id"
+                                                        <div>
+                                                            <label for=""
+                                                                >Term:</label
                                                             >
-                                                                {{ term.name }}
-                                                            </option>
-                                                        </select>
+                                                            <select
+                                                                name="event_term_id"
+                                                                id=""
+                                                                class="w-full block p-2 border border-gray-300 rounded shadow-inner"
+                                                                required
+                                                            >
+                                                                <option
+                                                                    v-for="term in terms"
+                                                                    :key="term"
+                                                                    :value="
+                                                                        term.id
+                                                                    "
+                                                                >
+                                                                    {{
+                                                                        term.name
+                                                                    }}
+                                                                </option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div>
+                                                            <label
+                                                                for="event_levels"
+                                                                >Levels</label
+                                                            >
+                                                            <select
+                                                                name="event_levels[]"
+                                                                class="block p-2 border w-full border-gray-300 rounded shadow-inner"
+                                                                required
+                                                                multiple
+                                                            >
+                                                                <option
+                                                                    value="All Levels"
+                                                                >
+                                                                    All Levels
+                                                                </option>
+                                                                <option
+                                                                    v-for="(
+                                                                        item,
+                                                                        index
+                                                                    ) in level_lists"
+                                                                    :key="index"
+                                                                    :value="
+                                                                        item.value
+                                                                    "
+                                                                >
+                                                                    {{
+                                                                        item.label
+                                                                    }}
+                                                                </option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label for=""
+                                                                >Activity Design
+                                                                (PDF file
+                                                                only):</label
+                                                            >
+                                                            <input
+                                                                type="file"
+                                                                name="activity_design"
+                                                                class="block p-2 border border-gray-300 w-full rounded"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-
-                                                <div>
-                                                    <label for="">Venue:</label>
-                                                    <select
-                                                        name="event_venue"
-                                                        class="block p-2 border border-gray-300 w-full rounded"
-                                                        required
-                                                    >
-                                                        <option
-                                                            v-for="venue in venues"
-                                                            :key="venue"
-                                                            :value="venue.id"
-                                                        >
-                                                            {{ venue.name }}
-                                                        </option>
-                                                    </select>
-                                                </div>
-
-                                                <div>
-                                                    <label for="event_levels"
-                                                        >Levels</label
-                                                    >
-                                                    <select
-                                                        name="event_levels"
-                                                        class="block p-2 border border-gray-300 rounded shadow-inner"
-                                                        required
-                                                    >
-                                                        <option
-                                                            v-for="(
-                                                                item, index
-                                                            ) in level_lists"
-                                                            :key="index"
-                                                            :value="item.value"
-                                                        >
-                                                            {{ item.label }}
-                                                        </option>
-                                                    </select>
-                                                </div>
-
-                                                <div>
-                                                    <label for=""
-                                                        >Activity Design:</label
-                                                    >
-                                                    <input
-                                                        type="file"
-                                                        name="activity_design"
-                                                        class="block p-2 border border-gray-300 w-full rounded"
-                                                    />
-                                                </div>
+                                                <div
+                                                    class="flex justify-between"
+                                                ></div>
 
                                                 <div
                                                     class="flex justify-end p-2"
@@ -1151,16 +1490,26 @@ const openSingleSearchedEvent = (id) => {
         </div>
     </div>
 </template>
-
 <script>
-const convertToDate = (month, day, year) => {
-    const date = new Date(year, month - 1, day);
-    const formattedYear = date.getFullYear();
-    const formattedMonth = String(date.getMonth() + 1).padStart(2, "0");
-    const formattedDay = String(date.getDate()).padStart(2, "0");
+import { ref } from "vue";
 
-    return `${formattedYear}-${formattedMonth}-${formattedDay}`;
-};
+const hours = [
+    "12",
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+];
+const minutes = Array.from({ length: 60 }, (_, i) =>
+    i.toString().padStart(2, "0")
+);
 
 export default {
     data() {
@@ -1172,160 +1521,530 @@ export default {
             success: "",
             level_lists: [],
             selectedDepartment: "",
+            selectedVenue: "",
             errors: "",
             pageTitle: "",
             user: [],
+            selectedDepartments: [],
+            unavailableTimes: [],
+            isDisabled: false,
+            disableTimePicker: true,
+            endPeriod: "",
+            endHour: "",
+            endMinutes: "",
+            startPeriod: "",
+            startHour: "",
+            startMinutes: "",
+
+            startTime: null, // Combined start time
+            endTime: null, // Combined end time
+
+            selectedAMPMStart: null,
+            selectedAMPMEnd: null,
+            selectedHourStart: null,
+            selectedMinuteStart: null,
+            selectedHourEnd: null,
+            selectedMinuteEnd: null,
+
+            selectedDateForm: "",
+            selectedDateStartForm: "",
+
+            startTimeApproved: false,
+            endTimeApproved: false,
+            startTimeDisable: true,
         };
     },
+    inheritAttrs: false,
     props: {
-        search_value: {
-            type: String,
-        },
-        currentDepartment: {
-            type: Object,
-        },
-        departments: {
-            type: Object,
-        },
-        venues: {
-            type: Object,
-        },
+        search_value: String,
+        currentDepartment: Object,
+        departments: Object,
+        venues: Object,
         events: {
             type: Array,
             required: true,
         },
-        terms: {
-            type: Object,
-        },
-        user_role_calendar: {
-            type: String,
-        },
-        successMessage: {
-            type: String,
-        },
-        errorMessage: {
-            type: String,
-        },
-        eventsWithDetails: {
-            type: Array,
-        },
-        user_role: {
-            type: String,
-        },
-        searchResults: {
-            type: Array,
-        },
+        terms: Object,
+        user_role_calendar: String,
+        successMessage: String,
+        errorMessage: String,
+        eventsWithDetails: Array,
+        user_role: String,
+        searchResults: Array,
         selectedDate: {},
+        currentVenue: {},
     },
+
     methods: {
-        onDepartmentChange(day) {
-            const selectedDept = document.getElementById(
-                "department-" + day
-            ).value;
-            if (
-                [
-                    "College",
-                    "COE",
-                    "CABM",
-                    "CABM-B",
-                    "CABM-H",
-                    "CAST",
-                    "CCJ",
-                    "COE",
-                    "CON",
-                ].includes(selectedDept)
-            ) {
-                let level_lists = [
-                    { label: "All", value: "[1,2,3,4]" },
-                    { label: "1-3rd yrs", value: "[1,2,3]" },
-                    { label: "1-2nd yrs", value: "[1,2]" },
-                    { label: "2-4th yrs", value: "[2,3,4]" },
-                    { label: "2-3rd yrs", value: "[2,3]" },
-                    { label: "3-4th yrs", value: "[3,4]" },
-                    { label: "4th yrs", value: "[4]" },
-                    { label: "3rd yrs", value: "[3]" },
-                    { label: "2nd yrs", value: "[2]" },
-                    { label: "1st yrs", value: "[1]" },
-                ];
+        timeEndPeriodChange(value) {
+            this.endPeriod = value;
+        },
+        timeEndHourChange(value) {
+            this.endHour = value;
+        },
+        timeEndMinutesChange(value) {
+            this.endMinutes = value;
+        },
+        timeStartPeriodChange(value) {
+            this.startPeriod = value;
+        },
+        timeStartHourChange(value) {
+            this.startHour = value;
+        },
+        timeStartMinutesChange(value) {
+            this.startMinutes = value;
+        },
 
-                this.level_lists = level_lists;
-            } else if (selectedDept == "ELEM") {
-                let level_lists = [
-                    { label: "All", value: "[1,2,3,4,5,6]" },
-                    { label: "1-5th grade", value: "[1,2,3,4,5]" },
-                    { label: "1-4th grade", value: "[1,2,3,4]" },
-                    { label: "1-3rd grade", value: "[1,2,3]" },
-                    { label: "1-2nd grade", value: "[1,2]" },
-                    { label: "2-6th grade", value: "[2,3,4,5,6]" },
-                    { label: "2-5th grade", value: "[2,3,4,5]" },
-                    { label: "2-4th grade", value: "[2,3,4]" },
-                    { label: "2-3rd grade", value: "[2,3]" },
-                    { label: "3-4th grade", value: "[3,4]" },
-                    { label: "6th grade", value: "[6]" },
-                    { label: "5th grade", value: "[5]" },
-                    { label: "4th grade", value: "[4]" },
-                    { label: "3rd grade", value: "[3]" },
-                    { label: "2nd grade", value: "[2]" },
-                    { label: "1st grade", value: "[1]" },
-                ];
+        onVenueChange(date, venueId, events) {
+            let date_end = date;
+            let date_start = this.selectedDateForm;
 
-                this.level_lists = level_lists;
-            } else if (selectedDept == "JHS") {
-                let level_lists = [
-                    { label: "All", value: "[7,8,9,10]" },
-                    { label: "9-10th grade", value: "[9,10]" },
-                    { label: "8-10th grade", value: "[8,9,10]" },
-                    { label: "8-9th grade", value: "[8,9]" },
-                    { label: "7-9th grade", value: "[7,8,9]" },
-                    { label: "7-8th grade", value: "[7,8]" },
-                    { label: "10th grade", value: "[10]" },
-                    { label: "9th grade", value: "[9]" },
-                    { label: "8th grade", value: "[8]" },
-                    { label: "7th grade", value: "[7]" },
-                ];
+            // Function to format Date object to 'YYYY-MM-DD'
+            const formatDate = (dateObj) => {
+                const year = dateObj.getFullYear();
+                const month = dateObj.getMonth() + 1;
+                const day = dateObj.getDate();
+                return `${year}-${month.toString().padStart(2, "0")}-${day
+                    .toString()
+                    .padStart(2, "0")}`;
+            };
 
-                this.level_lists = level_lists;
-            } else if (selectedDept == "HS") {
-                let level_lists = [
-                    { label: "All", value: "[7,8,9,10,11,12]" },
-                    { label: "K-11", value: "[11]" },
-                    { label: "K-12", value: "[12]" },
-                    { label: "7-K11 grade", value: "[7,8,9,10,11]" },
-                    { label: "9-10th grade", value: "[9,10]" },
-                    { label: "8-10th grade", value: "[8,9,10]" },
-                    { label: "8-9th grade", value: "[8,9]" },
-                    { label: "7-9th grade", value: "[7,8,9]" },
-                    { label: "7-8th grade", value: "[7,8]" },
-                    { label: "10th grade", value: "[10]" },
-                    { label: "9th grade", value: "[9]" },
-                    { label: "8th grade", value: "[8]" },
-                    { label: "7th grade", value: "[7]" },
-                ];
+            // Format date_end if it's a Date object
+            if (typeof date === "object" && date instanceof Date) {
+                date_end = formatDate(date);
+            }
 
-                this.level_lists = level_lists;
-            } else if (selectedDept == "GS") {
-                let level_lists = [{ label: "None", value: "none" }];
+            // Format date_start (since it's always an object)
+            if (typeof date_start === "object" && date_start instanceof Date) {
+                date_start = formatDate(date_start);
+            }
 
-                this.level_lists = level_lists;
-            } else if (selectedDept == "SHS") {
-                let level_lists = [
-                    { label: "All", value: "[11,12]" },
-                    { label: "K-11", value: "[11]" },
-                    { label: "K-12", value: "[12]" },
-                ];
+            const filteredEvents = events.filter((event) => {
+                // Check if the event venue matches the provided venueId
+                if (
+                    event.venue_id === parseInt(venueId) &&
+                    event.isApprovedByAdmin !== null
+                ) {
+                    const eventStartDate = new Date(
+                        event.date_start + "T00:00:00"
+                    );
+                    const eventEndDate = new Date(event.date_end + "T23:59:59");
+                    const filterStartDate = new Date(date_start + "T00:00:00");
+                    const filterEndDate = new Date(date_end + "T23:59:59");
 
-                this.level_lists = level_lists;
-            } else if (selectedDept == "PRE-K") {
-                let level_lists = [
-                    { label: "All", value: "[1,2]" },
-                    { label: "Kinder 1", value: "[1]" },
-                    { label: "Kinder 2", value: "[12]" },
-                ];
+                    const isInRange =
+                        (eventStartDate >= filterStartDate &&
+                            eventStartDate <= filterEndDate) ||
+                        (eventEndDate >= filterStartDate &&
+                            eventEndDate <= filterEndDate) ||
+                        (eventStartDate <= filterStartDate &&
+                            eventEndDate >= filterEndDate);
 
-                this.level_lists = level_lists;
+                    return isInRange;
+                }
+                return false;
+            });
+
+            this.disableTimePicker = false;
+            this.selectedVenue = venueId;
+
+            this.unavailableTimes = filteredEvents
+                .filter((event) => event.time_start && event.time_end)
+                .map((event) => {
+                    const [startHour, startMinute] = event.time_start
+                        .split(":")
+                        .slice(0, 2);
+                    const [endHour, endMinute] = event.time_end
+                        .split(":")
+                        .slice(0, 2);
+                    const startPeriod = parseInt(startHour) >= 12 ? "PM" : "AM";
+                    const endPeriod = parseInt(endHour) >= 12 ? "PM" : "AM";
+                    const start = `${String(
+                        parseInt(startHour) % 12 || 12
+                    ).padStart(2, "0")}:${startMinute.padStart(
+                        2,
+                        "0"
+                    )} ${startPeriod}`;
+                    const end = `${String(
+                        parseInt(endHour) % 12 || 12
+                    ).padStart(2, "0")}:${endMinute.padStart(
+                        2,
+                        "0"
+                    )} ${endPeriod}`;
+                    return { start, end };
+                });
+
+            console.log(this.unavailableTimes);
+        },
+        convertTimeToMinutes(time) {
+            const [hours, minutes] = time.split(/[: ]/).slice(0, 2).map(Number);
+            const period = time.split(" ")[1];
+            return (
+                (period === "PM" && hours !== 12 ? hours + 12 : hours) * 60 +
+                minutes
+            );
+        },
+        convertMinutesToTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            const period = hours >= 12 ? "PM" : "AM";
+            const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+            return `${String(formattedHours).padStart(2, "0")}:${String(
+                mins
+            ).padStart(2, "0")} ${period}`;
+        },
+        convertTimeToHour(time) {
+            const [hour, minute] = time.split(":");
+            const [minutePart, period] = minute.split(" ");
+
+            let hour24 = parseInt(hour, 10);
+            if (period === "PM" && hour24 !== 12) {
+                hour24 += 12; // Convert PM to 24-hour format (except for 12 PM)
+            } else if (period === "AM" && hour24 === 12) {
+                hour24 = 0; // Convert 12 AM to 0 in 24-hour format
+            }
+            return hour24;
+        },
+        isHourDisabled(hour, selectedTimePeriod) {
+            const disabledHours = this.unavailableTimes.flatMap((range) => {
+                const startHour = this.convertTimeToHour(range.start);
+                const endHour = this.convertTimeToHour(range.end);
+                let hoursInRange = [];
+
+                // Case 1: Start is AM and End is AM - Disable hours between start and end in the AM range
+                if (startHour < 12 && endHour < 12) {
+                    for (let h = startHour; h <= endHour; h++) {
+                        hoursInRange.push(h % 24);
+                    }
+                }
+                // Case 2: Start is AM and End is PM - Disable all hours from start to 12 PM
+                else if (startHour < 12 && endHour >= 12) {
+                    // Disable hours from the start to 12 PM (AM)
+                    for (let h = startHour; h < 12; h++) {
+                        hoursInRange.push(h % 24);
+                    }
+                    // Disable all hours from 12 PM to the end hour
+                    for (let h = 12; h <= endHour; h++) {
+                        hoursInRange.push(h % 24);
+                    }
+                }
+                // Case 3: Start is PM and End is PM - Disable hours between start and end in the PM range
+                else if (startHour >= 12 && endHour >= 12) {
+                    for (let h = startHour; h <= endHour; h++) {
+                        hoursInRange.push(h % 24);
+                    }
+                }
+
+                return hoursInRange;
+            });
+
+            const hourInt = parseInt(hour);
+            let hour24 = hourInt;
+
+            // Convert to 24-hour format if PM
+            if (selectedTimePeriod === "PM" && hourInt !== 12) {
+                hour24 = hourInt + 12;
+            }
+
+            // Return if the hour is in the disabled range
+            return disabledHours.includes(hour24);
+        },
+        updateStartTime() {
+            let hour = this.startHour;
+            let minutes = this.startMinutes;
+            let period = this.startPeriod ? this.startPeriod.toUpperCase() : "";
+
+            if (period === "PM" && hour < 12) hour = parseInt(hour) + 12; // Convert PM hour
+            if (period === "AM" && hour == 12) hour = 0; // Convert 12 AM to 00
+
+            const formattedStartTime = new Date();
+            formattedStartTime.setHours(hour);
+            formattedStartTime.setMinutes(minutes);
+
+            // Store the start time in the component
+            this.startTime = formattedStartTime;
+
+            // Call watchTimeChange to check for overlap
+            this.watchTimeChange();
+        },
+
+        // Method to update end time from the separate components
+        updateEndTime() {
+            let hour = this.endHour;
+            let minutes = this.endMinutes;
+            let period = this.endPeriod ? this.endPeriod.toUpperCase() : ""; // AM/PM should be uppercase
+
+            if (period === "PM" && hour < 12) hour = parseInt(hour) + 12; // Convert PM hour
+            if (period === "AM" && hour == 12) hour = 0; // Convert 12 AM to 00
+
+            const formattedEndTime = new Date();
+            formattedEndTime.setHours(hour);
+            formattedEndTime.setMinutes(minutes);
+
+            // Store the end time in the component
+            this.endTime = formattedEndTime;
+
+            // Call watchTimeChange to check for overlap
+            this.watchTimeChange();
+        },
+
+        // Function to check if the time ranges overlap
+        isTimeOverlapping(startTime, endTime, rangeStart, rangeEnd) {
+            // Check if the selected range overlaps with the existing range
+            return startTime < rangeEnd && endTime > rangeStart; // Adjust comparison logic as needed
+        },
+        formatSelectedTime(date) {
+            return date.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+            });
+        },
+
+        convertTimeToMinutes(timeStr) {
+            const [time, modifier] = timeStr.split(" ");
+            let [hours, minutes] = time.split(":").map(Number);
+
+            if (modifier === "PM" && hours !== 12) hours += 12;
+            if (modifier === "AM" && hours === 12) hours = 0;
+
+            return hours * 60 + minutes; // Convert to minutes
+        },
+        rangesOverlap(range1, range2) {
+            const range1Start = this.convertTimeToMinutes(range1.start);
+            const range1End = this.convertTimeToMinutes(range1.end);
+            const range2Start = this.convertTimeToMinutes(range2.start);
+            const range2End = this.convertTimeToMinutes(range2.end);
+
+            // Check for overlap
+            return range1Start < range2End && range1End > range2Start;
+        },
+
+        // Function to handle time change and check for overlaps
+        watchTimeChange() {
+            let date = this.startTime; // Date object
+
+            // Extract the hour and minute
+            let hour = date.getHours(); // 4 (for 4 AM/PM)
+            let minutes = date.getMinutes(); // 6 (for 06 minutes)
+
+            // Determine AM/PM period
+            let period = hour >= 12 ? "PM" : "AM";
+
+            // Convert hour to 12-hour format
+            let formattedHour = hour % 12;
+            if (formattedHour === 0) formattedHour = 12; // Handle 0 hour as 12
+
+            // Ensure hour, minutes, and period are not null or undefined
+            if (formattedHour != null && minutes != null && period != null) {
+                // Convert to string if needed (for example "8:30 PM")
+                let timeString = `${formattedHour}:${
+                    minutes < 10 ? "0" + minutes : minutes
+                } ${period}`;
+
+                console.log(`Time String: ${timeString}`); // Logs the formatted time
+
+                this.startTimeApproved = true;
+                this.startTimeDisable = false;
+            } else {
+                console.error("Invalid time components");
+            }
+
+            // Ensure that startTime and endTime are valid Date objects
+            if (this.startTime && this.endTime) {
+                // Convert start and end times to milliseconds
+                const startTime = this.startTime.getTime();
+                const endTime = this.endTime.getTime();
+
+                // Check if endTime is greater than startTime
+                if (endTime <= startTime) {
+                    alert("End time must be greater than start time.");
+                    this.selectedHourEnd = null;
+                    this.selectedMinuteEnd = null;
+                    this.endTime = null;
+                    this.endTimeApproved = false;
+                    return;
+                }
+
+                // Format the start and end times to 'hh:mm AM/PM'
+                const formattedStartTime = this.formatSelectedTime(
+                    this.startTime
+                );
+                const formattedEndTime = this.formatSelectedTime(this.endTime);
+
+                const formattedTimes = {
+                    start: formattedStartTime,
+                    end: formattedEndTime,
+                };
+
+                let isOverlapping = false;
+                // Loop through existing ranges to check for overlap
+                for (let existingRange of this.unavailableTimes) {
+                    if (this.rangesOverlap(formattedTimes, existingRange)) {
+                        isOverlapping = true;
+                        break;
+                    }
+                }
+
+                if (isOverlapping) {
+                    this.selectedHourStart = null;
+                    this.selectedMinuteStart = null;
+                    this.selectedHourEnd = null;
+                    this.selectedMinuteEnd = null;
+                    this.startTime = null;
+                    this.endTime = null;
+                    this.startTimeApproved = false;
+                    this.endTimeApproved = false;
+                    alert(
+                        "This time is not available! Please try another time."
+                    );
+                } else {
+                    this.startTimeApproved = true;
+                    this.endTimeApproved = true;
+                }
+            }
+        },
+        formatText(text) {
+            return text.replace(/[\[\]\""]/g, "").replace(/,/g, ", ");
+        },
+
+        isSelected(departmentAcronym) {
+            return this.selectedDepartments.includes(departmentAcronym);
+        },
+
+        departmentColor(deptIds) {
+            let deptIdString = deptIds.replace(/[\[\]\""\,\s+]/g, "");
+
+            let deptIdArray = deptIdString.split("").map(Number);
+            let deptIdSum = deptIdArray.reduce((acc, num) => acc + num, 0);
+
+            let hash = deptIdSum * 1234567;
+            hash = (hash + deptIdSum) * 9876543;
+
+            let hex =
+                "#" + ((hash & 0xffffff) + 0x1000000).toString(16).slice(1);
+            hex += "30";
+
+            return hex;
+        },
+        checkDateNow(date) {
+            const selectedDate = new Date(date);
+
+            const dateToday = new Date();
+
+            dateToday.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate >= dateToday) {
+                return false;
+            } else {
+                return true;
             }
         },
 
+        onDepartmentChange(day) {
+            const selectedDepts = Array.from(
+                document.getElementById("department-" + day).selectedOptions
+            ).map((option) => option.value);
+
+            const departmentLevels = {
+                College: [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                COE: [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                CAST: [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                CCJ: [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                CON: [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                CABM: [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                "CABM-B": [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                "CABM-H": [
+                    { label: "4th yrs", value: "4th yrs" },
+                    { label: "3rd yrs", value: "3rd yrs" },
+                    { label: "2nd yrs", value: "2nd yrs" },
+                    { label: "1st yrs", value: "1st yrs" },
+                ],
+                ELEM: [
+                    { label: "6th grade", value: "6th grade" },
+                    { label: "5th grade", value: "5th grade" },
+                    { label: "4th grade", value: "4th grade" },
+                    { label: "3rd grade", value: "3rd grade" },
+                    { label: "2nd grade", value: "2nd grade" },
+                    { label: "1st grade", value: "1st grade" },
+                ],
+                JHS: [
+                    { label: "10th grade", value: "10th grade" },
+                    { label: "9th grade", value: "9th grade" },
+                    { label: "8th grade", value: "8th grade" },
+                    { label: "7th grade", value: "7th grade" },
+                ],
+                HS: [
+                    { label: "K-11", value: "K-11" },
+                    { label: "K-12", value: "K-12" },
+                    { label: "10th grade", value: "10th grade" },
+                    { label: "9th grade", value: "9th grade" },
+                    { label: "8th grade", value: "8th grade" },
+                    { label: "7th grade", value: "7th grade" },
+                ],
+                GS: [{ label: "None", value: "None" }],
+                SHS: [
+                    { label: "K-11", value: "K-11" },
+                    { label: "K-12", value: "K-12" },
+                ],
+                "PRE-K": [
+                    { label: "Kinder 1", value: "Kinder 1" },
+                    { label: "Kinder 2", value: "Kinder 2" },
+                ],
+            };
+
+            const combinedLevelSets = new Set();
+
+            selectedDepts.forEach((selectedDept) => {
+                if (departmentLevels[selectedDept]) {
+                    departmentLevels[selectedDept].forEach((level) => {
+                        // Use JSON stringification to ensure deep comparison (by value)
+                        combinedLevelSets.add(JSON.stringify(level));
+                    });
+                }
+            });
+
+            // Convert the Set back to an array of objects
+            this.level_lists = Array.from(combinedLevelSets).map((levelStr) =>
+                JSON.parse(levelStr)
+            );
+        },
         selectedDateToPush(selectedDate, eventsWithDetails) {
             if (selectedDate != null) {
                 const date = new Date(selectedDate);
@@ -1345,7 +2064,7 @@ export default {
         formatDate(date) {
             const newdate = new Date(date);
             const formattedDate = newdate.toLocaleDateString("en-US", {
-                month: "long",
+                month: "short",
                 day: "numeric",
                 year: "numeric",
             });
@@ -1377,7 +2096,6 @@ export default {
         },
         eventsDetails(day, selectedMonth, currentYear, eventsWithDetails) {
             if (!eventsWithDetails || eventsWithDetails.length === 0) {
-                console.error("No events available.");
                 this.filteredEvents = [];
                 return;
             }
@@ -1385,6 +2103,17 @@ export default {
             const date = new Date(currentYear, selectedMonth - 1, day + 1); // Adjust for selected day
             const dateText = new Date(currentYear, selectedMonth - 1, day); // For displaying selected date
 
+            const formatDate = (dateObj) => {
+                const year = dateObj.getFullYear();
+                const month = dateObj.getMonth() + 1;
+                const day = dateObj.getDate();
+                return `${year}-${month.toString().padStart(2, "0")}-${day
+                    .toString()
+                    .padStart(2, "0")}`;
+            };
+
+            this.selectedDateForm = dateText;
+            this.selectedDateStartForm = formatDate(dateText);
             // Format the dates for display purposes
             const formattedDate = date.toLocaleDateString("en-US", {
                 month: "long",
@@ -1437,6 +2166,28 @@ export default {
         },
         mounted() {
             this.selectedDateToPush(selectedDate, eventsWithDetails);
+        },
+    },
+    watch: {
+        // Watch for changes in start time components
+        startPeriod(newValue, oldValue) {
+            this.updateStartTime();
+        },
+        startHour(newValue, oldValue) {
+            this.updateStartTime();
+        },
+        startMinutes(newValue, oldValue) {
+            this.updateStartTime();
+        },
+
+        endPeriod(newValue, oldValue) {
+            this.updateEndTime();
+        },
+        endHour(newValue, oldValue) {
+            this.updateEndTime();
+        },
+        endMinutes(newValue, oldValue) {
+            this.updateEndTime();
         },
     },
 };

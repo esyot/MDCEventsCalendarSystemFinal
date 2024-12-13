@@ -8,6 +8,7 @@ use App\Models\Term;
 use App\Models\UserRoles;
 use App\Models\Venue;
 use App\Models\VenueCoordinator;
+use Carbon\Carbon;
 use DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Permission;
@@ -42,7 +43,9 @@ class EventRequestController extends Controller
 
             $events = DB::table('events')
                 ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', 'events.department_id', '=', 'departments.id')
+                ->join('departments', function ($join) {
+                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
+                })
                 ->join('terms', 'events.term_id', '=', 'terms.id')
                 ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
@@ -53,14 +56,23 @@ class EventRequestController extends Controller
                     'venues.id as venue_id',
                     'venues.building as venue_building',
                     'departments.*',
-                    'departments.id as department_id',
-                    'departments.name as department_name',
+                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
                     'terms.id as term_id',
-                    'venues.id as venue_id',
+                    'terms.name as term_name',
                     'users.fname as user_fname',
                     'users.lname as user_lname',
-                )->where('user_id', Auth::user()->id)
+                )
+                ->where('user_id', Auth::user()->id)
+                ->groupBy(
+                    'events.id',
+                    'venues.name',
+                    'venues.building',
+                    'terms.name',
+                    'departments.id', // Add this
+                    'departments.name' // Add any other department fields if necessary
+                )
                 ->get();
+
 
 
         } else if ($user_role == 'venue_coordinator') {
@@ -69,7 +81,9 @@ class EventRequestController extends Controller
 
             $events = DB::table('events')
                 ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', 'events.department_id', '=', 'departments.id')
+                ->join('departments', function ($join) {
+                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
+                })
                 ->join('terms', 'events.term_id', '=', 'terms.id')
                 ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
@@ -80,21 +94,32 @@ class EventRequestController extends Controller
                     'venues.id as venue_id',
                     'venues.building as venue_building',
                     'departments.*',
-                    'departments.id as department_id',
-                    'departments.name as department_name',
+                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
                     'terms.id as term_id',
                     'terms.name as term_name',
                     'users.fname as user_fname',
                     'users.lname as user_lname',
-                )->whereIn('venue_id', $venuesAssignedIds)
+                )
+                ->whereIn('venue_id', $venuesAssignedIds)
+                ->groupBy(
+                    'events.id',
+                    'venues.name',
+                    'venues.building',
+                    'terms.name',
+                    'departments.id', // Add departments fields here
+                    'departments.name' // If needed, add other department fields
+                )
                 ->get();
+
 
 
         } else if ($user_role == 'admin' || $user_role == 'super_admin') {
 
             $events = DB::table('events')
                 ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', 'events.department_id', '=', 'departments.id')
+                ->join('departments', function ($join) {
+                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
+                })
                 ->join('terms', 'events.term_id', '=', 'terms.id')
                 ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
@@ -105,14 +130,24 @@ class EventRequestController extends Controller
                     'venues.id as venue_id',
                     'venues.building as venue_building',
                     'departments.*',
-                    'departments.id as department_id',
-                    'departments.name as department_name',
+                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
                     'terms.id as term_id',
                     'terms.name as term_name',
                     'users.fname as user_fname',
                     'users.lname as user_lname',
                 )
+
+                ->groupBy(
+                    'events.id',
+                    'venues.name',
+                    'venues.building',
+                    'terms.name',
+                    'departments.id', // Add this
+                    'departments.name' // Add any other department fields if necessary
+                )
                 ->get();
+
+
         }
 
 
@@ -156,9 +191,21 @@ class EventRequestController extends Controller
     public function create_request(Request $request)
     {
 
-        $department = Department::where('accronym', $request->event_department_id)->first();
-
+        $departmentIds = Department::whereIn('accronym', $request->event_departments)->get()->pluck('id')->toArray();
         $file = $request->file('activity_design');
+
+
+        $formattedStartDateString = preg_replace('/\s\(.*\)$/', '', $request->event_time_start);
+        $formatTimeStart = Carbon::parse($formattedStartDateString);
+        $formattedTimeStart = $formatTimeStart->format('H:i');
+
+        $formattedEndDateString = preg_replace('/\s\(.*\)$/', '', $request->event_time_end);
+        $formatTimeEnd = Carbon::parse($formattedEndDateString);
+        $formattedTimeEnd = $formatTimeEnd->format('H:i');
+
+
+
+
 
         if ($file != null) {
             $request->validate([
@@ -180,11 +227,11 @@ class EventRequestController extends Controller
                 'date_end' => $request->event_date_end,
                 'term_id' => $request->event_term_id,
                 'user_id' => Auth::user()->id,
-                'department_id' => $department->id,
+                'department_id' => json_encode($departmentIds),
                 'levels' => json_encode($request->event_levels),
                 'venue_id' => $request->event_venue,
-                'time_start' => date('H:i:s', strtotime($request->event_time_start)),
-                'time_end' => date('H:i:s', strtotime($request->event_time_end)),
+                'time_start' => $formattedTimeStart,
+                'time_end' => $formattedTimeEnd,
                 'activity_design_file_name' => $filename
             ]);
 
@@ -196,11 +243,11 @@ class EventRequestController extends Controller
                 'date_end' => $request->event_date_end,
                 'term_id' => $request->event_term_id,
                 'user_id' => Auth::user()->id,
-                'department_id' => $department->id,
+                'department_id' => json_encode($departmentIds),
                 'levels' => json_encode($request->event_levels),
                 'venue_id' => $request->event_venue,
-                'time_start' => date('H:i:s', strtotime($request->event_time_start)),
-                'time_end' => date('H:i:s', strtotime($request->event_time_end)),
+                'time_start' => $formattedTimeStart,
+                'time_end' => $formattedTimeEnd,
             ]);
 
 
@@ -282,15 +329,13 @@ class EventRequestController extends Controller
         return redirect()->route('unauthorized')->with('error', 'You have no permission to retract this event!');
     }
 
-    public function downloadActivityDesign($file)
+    public function viewActivityDesign($file)
     {
         $filePath = 'files/uploads/' . $file;
 
         if (Storage::disk('public')->exists($filePath)) {
 
-            Storage::disk('public')->size($filePath);
-
-            return Storage::disk('public')->download($filePath);
+            return response()->file(storage_path('app/public/' . $filePath));
         } else {
 
             return response()->json(['error' => 'File not found'], 404);

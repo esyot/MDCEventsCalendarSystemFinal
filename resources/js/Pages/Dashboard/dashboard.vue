@@ -87,120 +87,112 @@ const openSingleEvent = (id) => {
                             <td>{{ formatDate(event.date_end) }}</td>
                             <td>
                                 <button
-                                    @click="openSingleEvent(event.id)"
+                                    @click="openSingleEvent(event.event_id)"
                                     class="hover:opacity-50"
                                 >
                                     <i class="fas fa-eye text-blue-500"></i>
                                 </button>
                             </td>
-                            <div
-                                :id="'preview-' + event.id"
-                                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
-                            >
-                                <div class="bg-white rounded p-2">
-                                    <div>
-                                        <h1 class="text-xl font-semibold">
-                                            Event Details
-                                        </h1>
-                                    </div>
-
-                                    <div class="flex flex-col items-start">
-                                        <span
-                                            ><strong>Name:</strong>
-                                            {{ event.name }}</span
-                                        >
-
-                                        <span
-                                            ><strong>Department:</strong>
-                                            {{ event.department_name }}
-                                        </span>
-                                        <span
-                                            ><strong>Term:</strong>
-                                            {{ event.term_name }}
-                                        </span>
-                                        <span>
-                                            <strong>Date Start:</strong>
-
-                                            {{ formatDate(event.date_start) }}
-                                            {{ formatTime(event.time_start) }}
-                                        </span>
-                                        <span
-                                            ><strong>Date End:</strong>
-                                            {{ formatDate(event.date_end) }}
-
-                                            {{ formatTime(event.time_end) }}
-                                        </span>
-                                        <span
-                                            ><strong>Venue:</strong>
-                                            {{ event.venue_name }} at
-                                            {{ event.venue_building }}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        @click="openSingleEvent(event.id)"
-                                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div
-                                :id="'preview-event-single' + event.event_id"
-                                class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
-                            >
-                                <div class="bg-white rounded p-2">
-                                    <div>
-                                        <h1 class="text-xl font-semibold">
-                                            Event Details
-                                        </h1>
-                                    </div>
-
-                                    <div class="flex flex-col items-start">
-                                        <span
-                                            ><strong>Name:</strong>
-                                            {{ event.name }}</span
-                                        >
-
-                                        <span
-                                            ><strong>Department:</strong>
-                                            {{ event.department_name }}
-                                        </span>
-                                        <span
-                                            ><strong>Term:</strong>
-                                            {{ event.term_name }}
-                                        </span>
-                                        <span>
-                                            <strong>Date Start:</strong>
-
-                                            {{ formatDate(event.date_start) }}
-                                            {{ formatTime(event.time_start) }}
-                                        </span>
-                                        <span
-                                            ><strong>Date End:</strong>
-                                            {{ formatDate(event.date_end) }}
-
-                                            {{ formatTime(event.time_end) }}
-                                        </span>
-                                        <span
-                                            ><strong>Venue:</strong>
-                                            {{ event.venue_name }} at
-                                            {{ event.venue_building }}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        @click="openSingleEvent(event.event_id)"
-                                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+    <div v-for="event in filteredEvents" :key="event.id">
+        <div
+            :id="'preview-' + event.id"
+            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+        >
+            <div class="bg-white rounded p-2">
+                <div>
+                    <h1 class="text-xl font-semibold">Event Details</h1>
+                </div>
+
+                <div class="flex flex-col items-start">
+                    <span><strong>Name:</strong> {{ event.name }}</span>
+
+                    <span
+                        ><strong>Department:</strong>
+                        {{ event.department_acronyms }}
+                    </span>
+                    <span
+                        ><strong>Term:</strong>
+                        {{ event.term_name }}
+                    </span>
+                    <span>
+                        <strong>Date Start:</strong>
+
+                        {{ formatDate(event.date_start) }}
+                        {{ formatTime(event.time_start) }}
+                    </span>
+                    <span
+                        ><strong>Date End:</strong>
+                        {{ formatDate(event.date_end) }}
+
+                        {{ formatTime(event.time_end) }}
+                    </span>
+                    <span
+                        ><strong>Venue:</strong> {{ event.venue_name }} at
+                        {{ event.venue_building }}
+                    </span>
+                </div>
+
+                <button
+                    @click="openSingleEvent(event.id)"
+                    class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <div
+            :id="'preview-event-single' + event.event_id"
+            class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
+        >
+            <div class="bg-white rounded p-2">
+                <div>
+                    <h1 class="text-xl font-semibold">Event Details</h1>
+                </div>
+
+                <div class="flex flex-col items-start">
+                    <span><strong>Name:</strong> {{ event.name }}</span>
+
+                    <span
+                        ><strong>Department:</strong>
+                        {{ event.department_acronyms }}
+                    </span>
+                    <span
+                        ><strong>Term:</strong>
+                        {{ event.term_name }}
+                    </span>
+                    <span>
+                        <strong>Date Start:</strong>
+
+                        {{ formatDate(event.date_start) }}
+                        {{ formatTime(event.time_start) }}
+                    </span>
+                    <span
+                        ><strong>Date End:</strong>
+                        {{ formatDate(event.date_end) }}
+
+                        {{ formatTime(event.time_end) }}
+                    </span>
+                    <span
+                        ><strong>Venue:</strong> {{ event.venue_name }} at
+                        {{ event.venue_building }}
+                    </span>
+                </div>
+
+                <div class="flex justify-center">
+                    <button
+                        @click="openSingleEvent(event.event_id)"
+                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                    >
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -303,7 +295,7 @@ const openSingleEvent = (id) => {
                 </div>
                 <div class="flex flex-col overflow-y-auto my-2">
                     <div
-                        v-if="event_updates.length == 0"
+                        v-if="events_today.length == 0"
                         class="flex justify-center text-xl"
                     >
                         No Updates yet.
@@ -376,7 +368,7 @@ const openSingleEvent = (id) => {
                                     <h1
                                         v-else="
                                             event.isApprovedByAdmin == null &&
-                                            event.isApprovedByVenuCoordinator ==
+                                            event.isApprovedByVenueCoordinator ==
                                                 null
                                         "
                                         class="text-lg font-medium"
@@ -385,7 +377,7 @@ const openSingleEvent = (id) => {
                                     </h1>
 
                                     <p class="truncate w-[300px]">
-                                        {{ event.name }}
+                                        <strong> {{ event.name }}</strong>
                                         {{ event.date_start }} at
                                         {{ formatTime(event.time_start) }} to
                                         {{ event.date_end }}
@@ -395,7 +387,7 @@ const openSingleEvent = (id) => {
 
                                 <div class="flex justify-end">
                                     <small class="px-4">{{
-                                        timeAgo(event.isApprovedByAdmin)
+                                        timeAgo(event.updated_at)
                                     }}</small>
                                 </div>
                             </div>

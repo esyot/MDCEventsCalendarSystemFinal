@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Department;
 use App\Models\Permission;
 
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserPermission;
 use App\Models\UserRoles;
+use App\Models\UsersDepartment;
+use DB;
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Http\Request;
@@ -15,13 +18,30 @@ use Inertia\Inertia;
 
 class UserController extends Controller
 {
-    public function index()
-    {
-        $users = User::select('users.*', 'roles.role as role_name')
+    public function index(Request $request)
+    {// Fetch users with roles and other details
+        $users = User::select(
+            'users.*',
+            'roles.role as role_name',
+            'roles.*',
+            'user_roles.*'
+        )
             ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
             ->join('roles', 'user_roles.role_id', '=', 'roles.id')
             ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
             ->get();
+
+        // Fetch departments separately
+        $departments = DB::table('users_departments')
+            ->join('departments', 'users_departments.department_id', '=', 'departments.id')
+            ->get(['users_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
+
+        // Merge departments with users
+        $users->each(function ($user) use ($departments) {
+            $user->departments = $departments->where('user_id', $user->id)->values();
+        });
+
+
 
         $allUsers = User::all();
 
@@ -34,6 +54,21 @@ class UserController extends Controller
 
         $roles = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->pluck('role')->toArray();
 
+        $departments = Department::all();
+
+
+        $selectedUser = null;
+        $selectedUserDepartments = null;
+        if ($request->user) {
+
+            $selectedUser = User::find($request->user);
+
+            $departmentIds = UsersDepartment::where('user_id', $selectedUser->id)->get()->pluck('department_id');
+
+            $selectedUserDepartments = Department::whereIn('id', $departmentIds)->get()->toArray();
+
+        }
+
         return Inertia::render('User/user', [
             'users' => $users->sortBy('lname')->values(),
             'pageTitle' => 'List of Users',
@@ -41,7 +76,10 @@ class UserController extends Controller
             'allUsers' => $allUsers,
             'roles' => $roles,
             'user_searched' => [],
-            'user_role' => $user_role
+            'user_role' => $user_role,
+            'departments' => $departments,
+            'selectedUserDepartments' => $selectedUserDepartments,
+            'selectedUser' => $selectedUser
         ]);
     }
 
@@ -64,7 +102,7 @@ class UserController extends Controller
             ->pluck('user_id')->unique();
 
         $usersWithRoles = UserRoles::whereIn('user_id', $userIds)
-            ->whereNotIn('role_id', [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+            ->whereIn('role_id', [1, 19, 20, 21])
             ->pluck('user_id')->unique();
 
         $allExcludedUserIds = $usersWithExcludedRoles->merge($usersWithRoles)->unique();
@@ -73,11 +111,29 @@ class UserController extends Controller
 
         $user_searched = User::whereIn('id', $userWithoutExcludedRoles)->get()->unique('id');
 
-        $users = User::select('users.*', 'roles.role as role_name')
+        $roles = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->pluck('role')->toArray();
+
+
+        $users = User::select(
+            'users.*',
+            'roles.role as role_name',
+            'roles.*',
+            'user_roles.*'
+        )
             ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
             ->join('roles', 'user_roles.role_id', '=', 'roles.id')
-            ->whereIn('roles.id', [1, 19, 20, 21])
+            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
             ->get();
+
+        // Fetch departments separately
+        $departments = DB::table('users_departments')
+            ->join('departments', 'users_departments.department_id', '=', 'departments.id')
+            ->get(['users_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
+
+        // Merge departments with users
+        $users->each(function ($user) use ($departments) {
+            $user->departments = $departments->where('user_id', $user->id)->values();
+        });
 
         $user = Auth::user()->id;
 
@@ -89,14 +145,17 @@ class UserController extends Controller
             ->pluck('roles.role')
             ->first();
 
-
+        $departments = Department::all();
 
         return Inertia::render('User/user', [
             'users' => $users->sortBy('lname')->values(),
             'pageTitle' => 'List of Users',
             'user' => Auth::user(),
             'user_searched' => $user_searched,
-            'user_role' => $user_role
+            'user_role' => $user_role,
+            'departments' => $departments,
+            'roles' => $roles,
+
         ]);
 
     }
@@ -123,22 +182,27 @@ class UserController extends Controller
 
         $newRoleId = $roleIds[$validatedData['role']];
 
-        // Get the user's current role
+
         $currentUserRole = UserRoles::where('user_id', $user->id)->first();
 
-        // Only delete the old role if it differs from the new role
         if ($currentUserRole) {
             if ($newRoleId === null || $currentUserRole->role_id !== $newRoleId) {
                 UserRoles::where('user_id', $user->id)->delete();
             }
         }
 
-        // Assign new role if it's not 'none'
+
         if ($newRoleId !== null) {
             UserRoles::updateOrCreate(
                 ['user_id' => $user->id],
                 ['role_id' => $newRoleId]
             );
+
+            UsersDepartment::updateOrCreate(
+                ['user_id' => $user->id],
+                ['department_id' => $request->department]
+            );
+
         }
 
         return redirect()->back()->with('success', 'User role updated successfully!');
@@ -148,19 +212,54 @@ class UserController extends Controller
     {
         $role = Role::where('role', $request->role)->first();
 
-        UserRoles::where('user_id', $request->id)
+        UserRoles::where('user_id', $request->user)
             ->whereIn('role_id', [1, 19, 20, 21])
             ->update([
                 'role_id' => $role->id,
             ]);
+
 
         return redirect()->back()->with('success', 'User role has been updated successfully');
     }
 
     public function user_delete_role($id)
     {
-
         UserRoles::where('user_id', $id)->delete();
         return redirect()->back()->with('success', 'User role has been deleted successfully');
+    }
+
+    public function userDepartmentRemove($user, $department)
+    {
+
+        $userCount = UsersDepartment::where('user_id', $user)
+            ->count();
+        $userDepartment = UsersDepartment::where('user_id', $user)->
+            where('department_id', $department);
+
+        if ($userDepartment && $userCount > 1) {
+
+            $userDepartment->delete();
+
+            return redirect()->route('users', [
+                'user' => $user
+            ]);
+        }
+        return redirect()->route('users', [
+            'user' => $user
+        ])->with('error', 'User must have at least one department!');
+    }
+
+    public function userDepartmentAdd(Request $request)
+    {
+
+        UsersDepartment::create([
+            'user_id' => $request->user,
+            'department_id' => $request->department
+        ]);
+
+        return redirect()->route('users', [
+            'user' => $request->user
+        ]);
+
     }
 }

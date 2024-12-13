@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Event Table</title>
+    <title>List of Events</title>
     <style>
         /* Table Styles */
         table {
@@ -82,12 +82,12 @@
         <tbody>
             @foreach ($events as $event)
                 <tr>
-                    <td>{{ $event->name }}</td>
-                    <td>{{ $event->venue->name }} at {{ $event->venue->building }}</td>
-                    <td>{{ $event->department->name }}</td>
+                    <td>{{ $event->event_name }}</td>
+                    <td>{{ $event->venue_name }} at {{ $event->venue_building }}</td>
+                    <td>{{ $event->department_acronyms }}</td>
                     <td>{{ Carbon\Carbon::parse($event->date_start)->format('D, F j, Y')}}</td>
                     <td>{{ Carbon\Carbon::parse($event->date_end )->format('D, F j, Y')}}</td>
-                    <td>{{ ($event->user->fname)   }} {{ $event->user->lname }}</td>
+                    <td>{{ ($event->user_fname)   }} {{ $event->user_lname }}</td>
                 </tr>
             @endforeach
         </tbody>

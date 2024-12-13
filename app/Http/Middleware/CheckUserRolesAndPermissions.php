@@ -19,9 +19,9 @@ class CheckUserRolesAndPermissions
             $usersCanLogin = UserRoles::whereIn('role_id', [1, 19, 20, 21])->pluck('user_id');
 
             // Check if the logged-in user has a valid role
-            if (!$usersCanLogin->contains($user->id)) {
+            if (! $usersCanLogin->contains($user->id)) {
                 Auth::logout(); // Log the user out if they don't have a valid role
-                return redirect()->route('login')->with('error', 'Your access rights have changed. Please log in again.');
+                return redirect()->route('guest')->with('error', 'Your access rights have changed. Please log in again.');
             }
         }
 

@@ -1,18 +1,15 @@
 <script setup>
 import { ref, onMounted } from "vue";
 
-// Initialize the sidebar state from localStorage (if available)
 const isSidebarOpen = ref(localStorage.getItem("sidebarState") === "true");
 const isDropdownOpen = ref(false);
 
-// Function to toggle sidebar and save state to localStorage
 const toggleSidebar = () => {
     isSidebarOpen.value = !isSidebarOpen.value;
-    // Save the state to localStorage
+
     localStorage.setItem("sidebarState", isSidebarOpen.value.toString());
 };
 
-// Function to toggle dropdown
 const toggleDropdown = () => {
     isDropdownOpen.value = !isDropdownOpen.value;
 };
@@ -20,122 +17,227 @@ const toggleDropdown = () => {
 
 <template>
     <div class="flex h-screen">
-        <!-- Sidebar -->
         <aside
             :class="[
-                'bg-gradient-to-b select-none from-blue-500 to-blue-900 text-white p-4 h-full shadow flex flex-col',
+                'bg-gradient-to-b select-none from-blue-600 to-blue-900 text-white p-4 h-full shadow flex flex-col transition-all duration-300 ease-in-out',
                 isSidebarOpen ? 'w-64' : 'w-20',
             ]"
         >
-            <div class="flex flex-col items-center justify-center mb-8">
+            <div class="flex flex-col items-center w-full justify-center mb-4">
                 <div>
                     <img
                         src="/resources/css/mdc.png"
                         alt="Logo"
-                        class="w-20 rounded-full shadow-md"
+                        class="w-14 rounded-full shadow-md"
                     />
                 </div>
 
-                <hr class="border-t-2 mt-2 border-white w-full" />
+                <hr class="border-t opacity-30 mt-2 border-white w-full" />
                 <h1
                     v-if="isSidebarOpen"
-                    class="text-center font-semibold text-lg"
+                    class="mt-2 text-center font-semibold text-sm"
                 >
-                    MDC - SCHOOL CALENDAR
+                    MDC - SCHOOL EVENT CALENDAR
                 </h1>
             </div>
+            <div
+                class="mb-2"
+                :class="isSidebarOpen ? '' : 'flex justify-center'"
+            >
+                <span class="text-xs text-center opacity-50 font-medium">
+                    {{
+                        user_role
+                            .split("_")
+                            .map(
+                                (word) =>
+                                    word.charAt(0).toUpperCase() + word.slice(1)
+                            )
+                            .join(" ")
+                    }}
+                </span>
+            </div>
+            <hr class="border-t opacity-30 border-white w-full" />
 
             <nav
                 :class="isSidebarOpen ? 'items-start' : 'items-center'"
-                class="flex flex-col gap-6 text-sm"
+                class="flex flex-col gap-2 text-sm"
             >
                 <a
                     href="/dashboard"
-                    class="hover:bg-blue-700 p-2 rounded flex items-center"
+                    :class="[
+                        isSidebarOpen ? '' : 'flex flex-col text-xs',
+                        pageTitle == 'Dashboard'
+                            ? 'opacity-100 hover:opacity-60'
+                            : 'opacity-60 hover:opacity-100',
+                        'p-2 rounded flex  items-center w-full text-white',
+                    ]"
                 >
                     <i
-                        class="fas fa-gauge mr-2 transition-transform transform"
-                        :class="isSidebarOpen ? 'text-2xl' : 'text-xl scale-90'"
+                        class="fas fa-gauge text-sm mr-2 transition-transform transform duration-300 underline-none"
+                        :class="isSidebarOpen ? 'text-xl' : 'text-xl scale-90'"
                     ></i>
-                    <span v-if="isSidebarOpen">Dashboard</span>
+                    <span :class="pageTitle == 'Dashboard' ? 'underline' : ''"
+                        >Dashboard</span
+                    >
                 </a>
-
                 <a
                     href="/calendar"
-                    class="hover:bg-blue-700 p-2 rounded flex items-center"
+                    :class="[
+                        isSidebarOpen ? '' : 'flex flex-col text-xs',
+                        pageTitle == 'Calendar'
+                            ? 'opacity-100 hover:opacity-60'
+                            : 'opacity-60 hover:opacity-100',
+                        'p-2 rounded flex  items-center w-full text-white',
+                    ]"
+                    class="p-2 rounded flex items-center w-full text-white"
                 >
                     <i
-                        class="fas fa-calendar mr-2 transition-transform transform"
-                        :class="isSidebarOpen ? 'text-2xl' : 'text-xl scale-90'"
+                        class="fas fa-calendar text-sm mr-2 transition-transform transform"
+                        :class="isSidebarOpen ? 'text-xl' : 'text-xl scale-90'"
                     ></i>
-                    <span v-if="isSidebarOpen">Calendar</span>
+                    <span :class="pageTitle == 'Calendar' ? ' underline' : ''"
+                        >Calendar</span
+                    >
                 </a>
 
                 <a
-                    href="/eventRequest"
-                    class="hover:bg-blue-700 p-2 rounded flex items-center"
+                    href="/venues"
+                    :class="[
+                        isSidebarOpen ? '' : 'flex flex-col text-xs',
+                        pageTitle == 'Venues'
+                            ? 'opacity-100 hover:opacity-60'
+                            : 'opacity-60 hover:opacity-100',
+                        'p-2 rounded flex  items-center w-full text-white',
+                    ]"
+                    v-if="
+                        user_role == 'venue_coordinator' || user_role == 'admin'
+                    "
+                    class="p-2 rounded flex items-center w-full text-white"
                 >
-                    <span v-if="user_role === 'venue_coordinator'">
+                    <i
+                        class="fa-solid fa-building text-sm mr-2 transition-transform transform"
+                        :class="isSidebarOpen ? 'text-xl' : 'text-xl scale-90'"
+                    ></i>
+                    <span :class="pageTitle == 'Venues' ? ' underline' : ''"
+                        >Venues</span
+                    >
+                </a>
+
+                <a href="/eventRequest" class="w-full">
+                    <span
+                        v-if="user_role === 'venue_coordinator'"
+                        class="p-2 rounded flex items-center w-full text-white"
+                        :class="[
+                            isSidebarOpen
+                                ? ''
+                                : 'flex flex-col text-xs text-center',
+                            pageTitle == 'Requests'
+                                ? 'opacity-100 hover:opacity-60'
+                                : 'opacity-60 hover:opacity-100',
+                            'p-2 rounded flex  items-center w-full text-white',
+                        ]"
+                    >
                         <i
-                            class="fa-solid fa-location-arrow mr-2 transition-transform transform"
+                            class="fa-solid fa-location-arrow text-sm mr-2 transition-transform transform"
                             :class="
-                                isSidebarOpen ? 'text-2xl' : 'text-xl scale-90'
+                                isSidebarOpen ? 'text-xl' : 'text-xl scale-90'
                             "
                         ></i>
-                        <span v-if="isSidebarOpen">Venue Request</span>
+                        <span
+                            :class="pageTitle == 'Requests' ? ' underline' : ''"
+                            >Venue Request</span
+                        >
                     </span>
-                    <span v-else>
+                    <span
+                        v-else
+                        :class="[
+                            isSidebarOpen
+                                ? ''
+                                : 'flex flex-col text-xs text-center',
+                            pageTitle == 'Requests' ? 'opacity-100' : '',
+                        ]"
+                        class="p-2 rounded flex items-center opacity-60 hover:opacity-100 w-full text-white"
+                    >
                         <i
-                            class="fa-solid fa-location-arrow mr-2 transition-transform transform"
+                            class="fa-solid fa-location-arrow text-sm mr-2 transition-transform transform"
                             :class="
-                                isSidebarOpen ? 'text-2xl' : 'text-xl scale-90'
+                                isSidebarOpen ? 'text-xl' : 'text-xl scale-90'
                             "
                         ></i>
-                        <span v-if="isSidebarOpen">Event Request</span>
+                        <span
+                            :class="pageTitle == 'Requests' ? ' underline' : ''"
+                            >Event Request</span
+                        >
                     </span>
                 </a>
 
                 <a
                     v-if="user_role === 'super_admin' || user_role === 'admin'"
                     href="/venue-coordinators"
-                    class="hover:bg-blue-700 p-2 rounded flex items-center"
+                    :class="[
+                        isSidebarOpen
+                            ? ''
+                            : 'flex flex-col text-xs text-center',
+                        pageTitle == 'List of Venue Coordinators'
+                            ? 'opacity-100 hover:opacity-60'
+                            : 'opacity-60 hover:opacity-100',
+                    ]"
+                    class="p-2 rounded flex items-center w-full text-white"
                 >
                     <i
-                        class="fa-solid fa-users mr-2 transition-transform transform"
-                        :class="isSidebarOpen ? 'text-2xl' : 'text-xl scale-90'"
+                        class="fa-solid fa-users text-sm mr-2 transition-transform transform"
+                        :class="isSidebarOpen ? 'text-xl' : 'text-xl scale-90'"
                     ></i>
-                    <span v-if="isSidebarOpen">Venue Coordinators</span>
+                    <span
+                        :class="
+                            pageTitle == 'List of Venue Coordinators'
+                                ? ' underline'
+                                : ''
+                        "
+                        >Venue Coordinators</span
+                    >
                 </a>
 
                 <a
                     v-if="user_role === 'super_admin' || user_role === 'admin'"
                     href="/users"
-                    class="hover:bg-blue-700 p-2 rounded flex items-center"
+                    :class="[
+                        isSidebarOpen
+                            ? ''
+                            : 'flex flex-col text-xs text-center',
+                        pageTitle == 'List of Users'
+                            ? 'opacity-100 hover:opacity-60'
+                            : 'opacity-60 hover:opacity-100',
+                    ]"
+                    class="p-2 rounded flex items-center w-full text-white"
                 >
                     <i
-                        class="fa-solid fa-users-cog mr-2 transition-transform transform"
-                        :class="isSidebarOpen ? 'text-2xl' : 'text-xl scale-90'"
+                        class="fa-solid fa-users-cog text-sm mr-2 transition-transform transform"
+                        :class="isSidebarOpen ? 'text-xl' : 'text-xl scale-90'"
                     ></i>
-                    <span v-if="isSidebarOpen">Users</span>
+                    <span
+                        :class="
+                            pageTitle == 'List of Users' ? ' underline' : ''
+                        "
+                        >Users</span
+                    >
                 </a>
             </nav>
-
-            <!-- Toggle Sidebar Button -->
-            <button
-                @click="toggleSidebar"
-                class="mt-5 hover:bg-gray-400 p-4 rounded-full text-white"
-            >
-                <i
-                    :class="
-                        isSidebarOpen
-                            ? 'fas fa-chevron-left'
-                            : 'fas fa-chevron-right'
-                    "
-                ></i>
-            </button>
+            <div class="flex w-full justify-center">
+                <button
+                    @click="toggleSidebar"
+                    class="mt-5 hover:opacity-70 px-3 py-1 bg-gray-400 opacity-50 rounded-full text-gray-100"
+                >
+                    <i
+                        :class="
+                            isSidebarOpen
+                                ? 'fas fa-chevron-left fa-xs'
+                                : 'fas fa-chevron-right fa-xs'
+                        "
+                    ></i>
+                </button>
+            </div>
         </aside>
-
-        <!-- Main Content -->
         <main class="w-full select-none overflow-hidden bg-gray-200">
             <nav class="bg-white shadow p-2">
                 <div class="flex justify-between items-center">
