@@ -28,7 +28,6 @@ class AuthController extends Controller
             'password' => 'required|string'
         ]);
 
-
         if (Auth::attempt(['user' => $fields['user'], 'password' => $fields['password']])) {
             $user = Auth::user();
 
@@ -40,8 +39,94 @@ class AuthController extends Controller
             }
         }
 
-        $events = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->get();
-        $events_today = Event::where('isApprovedByVenueCoordinator', true)->where('isApprovedByAdmin', true)->where('date_start', today())->get();
+        $events = Event::
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.date as date_start',
+                'event_junctions.date_end as date_end'
+            )
+            ->groupBy(
+                'events.date',
+                'event_junctions.date_end'
+            )
+            ->get();
+
+        $eventsWithDetails = Event::
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.id as id',
+                'terms.name as term_name',
+                'events.name as name',
+                'events.levels as levels',
+                'venues.name as venue_name',
+                'venues.building as venue_building',
+                'events.date as date_start',
+                'event_junctions.time_start as time_start',
+                'event_junctions.date_end as date_end',
+                'event_junctions.time_end as time_end',
+                'event_junctions.updated_at as updated_at',
+                DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+            )
+            ->groupBy(
+                'events.id',
+                'terms.name',
+                'events.name',
+                'events.levels',
+                'events.date',
+                'venues.name',
+                'venues.building',
+                'event_junctions.time_end',
+                'event_junctions.time_start',
+                'event_junctions.date_end',
+                'event_junctions.updated_at',
+            )
+            ->get();
+
+
+        $events_today = Event::where('date', today());
+
+        $event_updates = Event::
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.id as id',
+                'terms.name as term_name',
+                'events.name as name',
+                'events.levels as levels',
+                'venues.name as venue_name',
+                'venues.building as venue_building',
+                'events.date as date_start',
+                'event_junctions.time_start as time_start',
+                'event_junctions.date_end as date_end',
+                'event_junctions.time_end as time_end',
+                'event_junctions.updated_at as updated_at',
+                DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+            )
+            ->groupBy(
+                'events.id',
+                'terms.name',
+                'events.name',
+                'events.levels',
+                'events.date',
+                'venues.name',
+                'venues.building',
+                'event_junctions.time_end',
+                'event_junctions.time_start',
+                'event_junctions.date_end',
+                'event_junctions.updated_at',
+            )
+            ->get();
 
         return Inertia::render('Guest/Dashboard/dashboard', [
             'errors' => ['user' => 'The provided credentials are incorrect.'],
@@ -49,6 +134,8 @@ class AuthController extends Controller
             'auth_error' => true,
             'events' => $events,
             'events_today' => $events_today,
+            'event_updates' => $event_updates,
+            'eventsWithDetails' => $eventsWithDetails
         ]);
     }
 

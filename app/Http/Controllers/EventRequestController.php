@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Event;
+use App\Models\EventDepartment;
+use App\Models\EventJunction;
 use App\Models\Role;
 use App\Models\Term;
+use App\Models\UserDepartment;
 use App\Models\UserRoles;
 use App\Models\Venue;
 use App\Models\VenueCoordinator;
@@ -41,117 +44,208 @@ class EventRequestController extends Controller
 
         if ($user_role == 'event_coordinator') {
 
-            $events = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
+            $deparmentIds = UserDepartment::where('user_id', Auth::user()->id)->get()->pluck('department_id');
+
+            $departments = Department::whereIn('id', $deparmentIds)->get();
+
+            $events = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
                 ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
-                    'events.*',
+                    'users.fname as user_fname',
+                    'users.lname as user_lname',
                     'events.id as event_id',
+                    'terms.name as term_name',
                     'events.name as event_name',
+                    'events.levels as levels',
                     'venues.name as venue_name',
                     'venues.id as venue_id',
                     'venues.building as venue_building',
-                    'departments.*',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.id as term_id',
-                    'terms.name as term_name',
-                    'users.fname as user_fname',
-                    'users.lname as user_lname',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.approved_by_admin_at as approved_by_admin_at',
+                    'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
+                    'event_junctions.comment as comment',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
-                ->where('user_id', Auth::user()->id)
                 ->groupBy(
+
+                    'users.fname',
+                    'users.lname',
                     'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.id',
                     'venues.name',
                     'venues.building',
-                    'terms.name',
-                    'departments.id', // Add this
-                    'departments.name' // Add any other department fields if necessary
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.approved_by_admin_at',
+                    'event_junctions.approved_by_venue_coordinator_at',
+                    'event_junctions.comment',
+                    'event_junctions.updated_at',
                 )
+                ->where('events.user_id', Auth::user()->id)
                 ->get();
+
 
 
 
         } else if ($user_role == 'venue_coordinator') {
 
             $venuesAssignedIds = VenueCoordinator::where('user_id', Auth::user()->id)->get()->pluck('venue_id');
-
-            $events = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
+            $events = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
                 ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
-                    'events.*',
+                    'users.fname as user_fname',
+                    'users.lname as user_lname',
                     'events.id as event_id',
+                    'terms.name as term_name',
                     'events.name as event_name',
+                    'events.levels as levels',
                     'venues.name as venue_name',
                     'venues.id as venue_id',
                     'venues.building as venue_building',
-                    'departments.*',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.id as term_id',
-                    'terms.name as term_name',
-                    'users.fname as user_fname',
-                    'users.lname as user_lname',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.approved_by_admin_at as approved_by_admin_at',
+                    'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
+                    'event_junctions.comment as comment',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+                )
+                ->groupBy(
+
+                    'users.fname',
+                    'users.lname',
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.id',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.approved_by_admin_at',
+                    'event_junctions.approved_by_venue_coordinator_at',
+                    'event_junctions.comment',
+                    'event_junctions.updated_at',
                 )
                 ->whereIn('venue_id', $venuesAssignedIds)
-                ->groupBy(
-                    'events.id',
-                    'venues.name',
-                    'venues.building',
-                    'terms.name',
-                    'departments.id', // Add departments fields here
-                    'departments.name' // If needed, add other department fields
-                )
                 ->get();
 
 
 
-        } else if ($user_role == 'admin' || $user_role == 'super_admin') {
+        } else if ($user_role == 'admin') {
 
-            $events = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
+            $events = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
                 ->join('users', 'events.user_id', '=', 'users.id')
                 ->select(
-                    'events.*',
+                    'users.fname as user_fname',
+                    'users.lname as user_lname',
                     'events.id as event_id',
+                    'terms.name as term_name',
                     'events.name as event_name',
+                    'events.levels as levels',
                     'venues.name as venue_name',
                     'venues.id as venue_id',
                     'venues.building as venue_building',
-                    'departments.*',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.id as term_id',
-                    'terms.name as term_name',
-                    'users.fname as user_fname',
-                    'users.lname as user_lname',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.approved_by_admin_at as approved_by_admin_at',
+                    'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
+                    'event_junctions.comment as comment',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
-
                 ->groupBy(
+
+                    'users.fname',
+                    'users.lname',
                     'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.id',
                     'venues.name',
                     'venues.building',
-                    'terms.name',
-                    'departments.id', // Add this
-                    'departments.name' // Add any other department fields if necessary
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.approved_by_admin_at',
+                    'event_junctions.approved_by_venue_coordinator_at',
+                    'event_junctions.comment',
+                    'event_junctions.updated_at',
                 )
                 ->get();
-
 
         }
 
+        $departmentsWithParent = DB::table('departments as t1')
+            ->leftJoin('departments as t2', 't1.parent_id', '=', 't2.id')
+            ->leftJoin('departments as t3', 't2.parent_id', '=', 't3.id')
+            ->leftJoin('departments as t4', 't3.parent_id', '=', 't4.id')
+            ->select(
+                't1.id as department_id',
+                't1.accronym as acronym',
+                't1.name as department_name',
+                DB::raw('COALESCE(t4.accronym, t3.accronym, t2.accronym, t1.accronym) as parent')
+
+            )
+            ->whereNotNull('t1.parent_id')
+            ->get();
+
+        $departmentsWithNoParent = DB::table('departments as t1')
+            ->leftJoin('departments as t2', 't1.id', '=', 't2.parent_id')
+            ->select(
+                't1.id as department_id',
+                't1.accronym as acronym',
+                't1.name as department_name',
+                't1.accronym as parent',
+            )
+            ->whereNull('t1.parent_id')
+            ->whereNull('t2.id')
+            ->get();
+
+
+
+        $departmentsForm = $departmentsWithNoParent->concat($departmentsWithParent);
+
+
 
         return Inertia::render('EventRequest/eventRequest', [
+            'departmentsForm' => $departmentsForm,
             'events' => $events,
             'pageTitle' => 'Requests',
             'user' => Auth::user(),
@@ -191,7 +285,11 @@ class EventRequestController extends Controller
     public function create_request(Request $request)
     {
 
-        $departmentIds = Department::whereIn('accronym', $request->event_departments)->get()->pluck('id')->toArray();
+        $department = array_unique(array_map(function ($item) {
+            return explode(',', $item)[0];
+        }, $request->event_departments));
+
+
         $file = $request->file('activity_design');
 
 
@@ -205,7 +303,12 @@ class EventRequestController extends Controller
 
 
 
+        if (count($department) > 1) {
+            $custom = Department::where('name', 'Custom')->pluck('id')->first();
 
+        } else {
+            $department_id = Department::where('accronym', $department[0])->pluck('id')->first();
+        }
 
         if ($file != null) {
             $request->validate([
@@ -221,34 +324,96 @@ class EventRequestController extends Controller
             $filename = $file->getClientOriginalName();
             $filePath = $file->storeAs($directory, $filename, 'public');
 
-            $event = Event::create([
+            $event1 = Event::create([
                 'name' => $request->event_name,
-                'date_start' => $request->event_date_start,
-                'date_end' => $request->event_date_end,
+                'date' => $request->event_date_start,
                 'term_id' => $request->event_term_id,
                 'user_id' => Auth::user()->id,
-                'department_id' => json_encode($departmentIds),
+                'department_id' => count($department) > 1 ? $custom : $department_id,
                 'levels' => json_encode($request->event_levels),
-                'venue_id' => $request->event_venue,
+            ]);
+
+            $event2 = EventJunction::create([
+                'event_id' => $event1->id,
+                'date_end' => $request->event_date_end,
                 'time_start' => $formattedTimeStart,
                 'time_end' => $formattedTimeEnd,
-                'activity_design_file_name' => $filename
+                'venue_id' => $request->event_venue,
+                'filename' => $filename
             ]);
+
+            $event = [
+                'event1' => $event1,
+                'event2' => $event2
+            ];
+
+            $departments = $request->departmentSelected;
+
+            // Loop based on the count of departments
+            for ($i = 0; $i < count($departments); $i++) {
+                // Assuming each value in $departments is a string of comma-separated department IDs
+                $deptIds = explode(',', $departments[$i]);
+
+                // Loop through each department ID in the exploded value
+                foreach ($deptIds as $deptId) {
+                    // Trim whitespace in case of extra spaces in the department ID string
+                    $deptId = trim($deptId);
+
+                    // Create the EventDepartment entry for each department ID
+                    EventDepartment::create([
+                        'event_id' => $event1->id,
+                        'department_id' => $deptId,
+                    ]);
+                }
+            }
 
 
         } else {
-            $event = Event::create([
+            $event1 = Event::create([
                 'name' => $request->event_name,
-                'date_start' => $request->event_date_start,
-                'date_end' => $request->event_date_end,
+                'date' => $request->event_date_start,
                 'term_id' => $request->event_term_id,
                 'user_id' => Auth::user()->id,
-                'department_id' => json_encode($departmentIds),
+                'department_id' => count($department) > 1 ? $custom : $department_id,
                 'levels' => json_encode($request->event_levels),
-                'venue_id' => $request->event_venue,
+            ]);
+
+
+
+            $event2 = EventJunction::create([
+                'event_id' => $event1->id,
+                'date_end' => $request->event_date_end,
                 'time_start' => $formattedTimeStart,
                 'time_end' => $formattedTimeEnd,
+                'venue_id' => $request->event_venue,
             ]);
+
+
+            $event = [
+                'event1' => $event1,
+                'event2' => $event2
+            ];
+
+            $departments = $request->departmentSelected;
+
+            // Loop based on the count of departments
+            for ($i = 0; $i < count($departments); $i++) {
+                // Assuming each value in $departments is a string of comma-separated department IDs
+                $deptIds = explode(',', $departments[$i]);
+
+                // Loop through each department ID in the exploded value
+                foreach ($deptIds as $deptId) {
+                    // Trim whitespace in case of extra spaces in the department ID string
+                    $deptId = trim($deptId);
+
+                    // Create the EventDepartment entry for each department ID
+                    EventDepartment::create([
+                        'event_id' => $event1->id,
+                        'department_id' => $deptId,
+                    ]);
+                }
+            }
+
 
 
         }
@@ -261,7 +426,7 @@ class EventRequestController extends Controller
     {
 
 
-        $event = Event::find($id);
+        $event = EventJunction::where('event_id', $id)->first();
 
         $event->update([
             'comment' => $event->comment . $request->comment,
@@ -274,10 +439,10 @@ class EventRequestController extends Controller
     {
 
         if ($role == 'venue_coordinator') {
-            $event = Event::find($id);
+            $event = EventJunction::where('event_id', $id);
 
             $event->update([
-                'isApprovedByVenueCoordinator' => now(),
+                'approved_by_venue_coordinator_at' => now(),
                 'comment' => null,
             ]);
 
@@ -286,12 +451,12 @@ class EventRequestController extends Controller
         } elseif ($role == 'admin') {
 
 
-            $event = Event::find($id);
+            $event = EventJunction::where('event_id', $id)->first();
 
-            if ($event->isApprovedByVenueCoordinator != null) {
+            if ($event->approved_by_venue_coordinator_at != null) {
 
                 $event->update([
-                    'isApprovedByAdmin' => now(),
+                    'approved_by_admin_at' => now(),
                 ]);
 
                 return redirect()->back()->with('success', 'Event was approved by the Admin successfully!');
@@ -307,19 +472,19 @@ class EventRequestController extends Controller
     public function eventRetract(Request $request, $role, $id)
     {
         if ($role == 'venue_coordinator') {
-            $event = Event::find($id);
+            $event = EventJunction::where('event_id', $id)->first();
 
             $event->update([
-                'isApprovedByVenueCoordinator' => null,
+                'approved_by_venue_coordinator_at' => null,
                 'comment' => $event->comment . $request->comment,
             ]);
 
             return redirect()->back()->with('success', 'Event was retracted successfully!');
         } else if ($role == 'admin') {
-            $event = Event::find($id);
+            $event = EventJunction::where('event_id', $id);
 
             $event->update([
-                'isApprovedByAdmin' => null,
+                'approved_by_admin_at' => null,
             ]);
 
             return redirect()->back()->with('success', 'Event was retracted successfully!');
@@ -346,6 +511,7 @@ class EventRequestController extends Controller
     {
 
 
+
         if ($request->activity_design) {
 
             $request->validate([
@@ -367,19 +533,27 @@ class EventRequestController extends Controller
                 $filePath = $file->storeAs($directory, $filename, 'public');
 
 
-                $event = Event::find($request->id);
+                $event1 = Event::find($request->id);
+                $event2 = EventJunction::where('event_id', $request->id)->first();
 
-                $event->update([
+                $event1->update([
                     'name' => $request->event_name,
-                    'date_start' => $request->date_start,
-                    'date_end' => $request->date_end,
+                    'date' => $request->date_start,
                     'term_id' => $request->term_id,
+                    'venue_id' => $request->venue_id,
+                    'user_id' => Auth::user()->id,
+
+                ]);
+
+                $event2->update([
+
+                    'date_end' => $request->date_end,
                     'time_start' => $request->time_start,
                     'time_end' => $request->time_end,
                     'department_id' => $request->department_id,
                     'venue_id' => $request->venue_id,
-                    'user_id' => Auth::user()->id,
-                    'activity_design_file_name' => $filename,
+
+                    'filename' => $filename,
                     'comment' => null,
 
                 ]);
@@ -389,21 +563,65 @@ class EventRequestController extends Controller
             }
 
         }
-        $event = Event::find($request->id);
 
-        $event->update([
-            'name' => $request->event_name,
-            'date_start' => $request->date_start,
+
+        $event = Event::find($request->id);
+        $event1 = $event;
+        $event2 = EventJunction::where('event_id', $request->id)->first();
+
+        $departments = $request->departments;
+
+        EventDepartment::where('event_id', $event->id)->delete();
+
+        // Loop based on the count of departments
+        for ($i = 0; $i < count($departments); $i++) {
+            // Assuming each value in $departments is a string of comma-separated department IDs
+            $deptIds = explode(',', $departments[$i]);
+
+            // Loop through each department ID in the exploded value
+            foreach ($deptIds as $deptId) {
+                // Trim whitespace in case of extra spaces in the department ID string
+                $deptId = trim($deptId);
+
+                // Create the EventDepartment entry for each department ID
+                EventDepartment::create([
+                    'event_id' => $event->id,
+                    'department_id' => $deptId,
+                ]);
+            }
+        }
+
+        $event2->update([
             'date_end' => $request->date_end,
-            'term_id' => $request->term_id,
             'time_start' => $request->time_start,
             'time_end' => $request->time_end,
+            'levels' => $request->event_levels,
             'department_id' => $request->department_id,
             'venue_id' => $request->venue_id,
             'user_id' => Auth::user()->id,
             'comment' => null,
 
         ]);
+
+
+
+        $event1->update([
+            'name' => $request->event_name,
+            'date' => $request->date_start,
+
+            'term_id' => $request->term_id,
+            'time_start' => $request->time_start,
+            'time_end' => $request->time_end,
+            'department_id' => $request->department_id,
+            'venue_id' => $request->event_venue,
+            'user_id' => Auth::user()->id,
+
+
+        ]);
+
+        dd($event2->toArray());
+
+
 
         return redirect()->back()->with('success', 'Event successfully updated!');
 

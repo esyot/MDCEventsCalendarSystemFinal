@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Permission;
+
 use App\Models\Role;
-use App\Models\UserPermission;
 use App\Models\Event;
-use App\Models\UserRoles;
 use App\Models\VenueCoordinator;
-use Carbon\Carbon;
-use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PageController extends Controller
@@ -20,206 +17,293 @@ class PageController extends Controller
     {
         $currentYear = now()->format('Y');
 
-
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
             ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 
-
         if ($user_role == 'event_coordinator') {
-            $event_updates = Event::whereNot('isApprovedByAdmin', null)
-                ->orderBy('isApprovedByAdmin', 'DESC')
-                ->where('user_id', Auth::user()->id)
-                ->whereNot('isApprovedByAdmin', null)
+            $events_today = Event::where('date', today());
+
+            $event_updates = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.id as id',
+                    'terms.name as term_name',
+                    'events.name as name',
+                    'events.levels as levels',
+                    'venues.name as venue_name',
+                    'venues.building as venue_building',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+                )
+                ->groupBy(
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.updated_at',
+                )
+                ->where('events.user_id', Auth::user()->id)
                 ->get();
+
 
             $events = Event::
-                whereNot('isApprovedByAdmin', null)
-                ->whereYear('date_start', $currentYear)
-                ->whereNot('isApprovedByAdmin', null)
-                ->whereNot('isApprovedByVenueCoordinator', null)
-                ->get(['date_start', 'date_end']);
-
-            $eventsWithDetails = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.name as term_name',
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.date as date_start',
+                    'event_junctions.date_end as date_end'
                 )
-                ->whereYear('date_start', $currentYear)
-                ->whereNot('isApprovedByAdmin', null)
-                ->whereNot('isApprovedByVenueCoordinator', null)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('date_start', 'ASC')
+                ->groupBy(
+                    'events.date',
+                    'event_junctions.date_end'
+                )
+                ->whereNotNull('event_junctions.approved_by_admin_at')
                 ->get();
 
-            $events_today = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
+            $eventsWithDetails = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.id as id',
                     'terms.name as term_name',
+                    'events.name as name',
+                    'events.levels as levels',
+                    'venues.name as venue_name',
+                    'venues.building as venue_building',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
-                ->whereYear('date_start', $currentYear)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('isApprovedByVenueCoordinator', 'DESC')
-                ->whereNotNull('isApprovedByVenueCoordinator')
-                ->whereNotNull('isApprovedByAdmin')
-                ->where('date_start', today())
+                ->groupBy(
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.updated_at',
+                )
                 ->get();
 
         } else if ($user_role == 'venue_coordinator') {
 
             $venueIds = VenueCoordinator::where('user_id', Auth::user()->id)->get()->pluck('venue_id');
 
+            $events_today = Event::where('date', today());
+
+            $event_updates = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.id as id',
+                    'terms.name as term_name',
+                    'events.name as name',
+                    'events.levels as levels',
+                    'venues.name as venue_name',
+                    'venues.building as venue_building',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+                )
+                ->groupBy(
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.updated_at',
+                )
+                ->whereIn('venues.id', $venueIds)
+                ->whereNull('approved_by_venue_coordinator_at')
+                ->get();
+
+
             $events = Event::
-                whereNot('isApprovedByAdmin', null)
-                ->whereYear('date_start', $currentYear)
-                ->whereNot('isApprovedByAdmin', null)
-                ->whereNot('isApprovedByVenueCoordinator', null)
-                ->get(['date_start', 'date_end']);
-
-
-            $event_updates = Event::where('isApprovedByVenueCoordinator', null)
-                ->whereIn('venue_id', $venueIds)
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->select('events.*', 'venues.name as venue_name', 'venues.building as venue_building')
-                ->orderBy('isApprovedByAdmin', 'DESC')
-                ->where('isApprovedByAdmin', null)
-                ->where('isApprovedByVenueCoordinator', null)
-                ->get();
-
-            $events_today = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.name as term_name',
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.date as date_start',
+                    'event_junctions.date_end as date_end'
                 )
-                ->whereYear('date_start', $currentYear)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('isApprovedByVenueCoordinator', 'DESC')
-                ->whereNotNull('isApprovedByVenueCoordinator')
-                ->whereNotNull('isApprovedByAdmin')
-                ->where('date_start', today())
-                ->get();
-
-            $eventsWithDetails = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.name as term_name',
+                ->groupBy(
+                    'events.date',
+                    'event_junctions.date_end'
                 )
-                ->whereYear('date_start', $currentYear)
-                ->whereNot('isApprovedByAdmin', null)
-                ->whereNot('isApprovedByVenueCoordinator', null)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('date_start', 'ASC')
                 ->get();
 
-
+            $eventsWithDetails = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.id as id',
+                    'terms.name as term_name',
+                    'events.name as name',
+                    'events.levels as levels',
+                    'venues.name as venue_name',
+                    'venues.building as venue_building',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+                )
+                ->groupBy(
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.updated_at',
+                )
+                ->get();
 
 
         } else {
 
-            $events_today = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.name as term_name',
-                )
-                ->whereYear('date_start', $currentYear)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('isApprovedByVenueCoordinator', 'DESC')
-                ->whereNotNull('isApprovedByVenueCoordinator')
-                ->whereNotNull('isApprovedByAdmin')
-                ->where('date_start', today())
-                ->get();
+            $events_today = Event::where('date', today());
 
-            $event_updates = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
+            $event_updates = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.id as id',
                     'terms.name as term_name',
+                    'events.name as name',
+                    'events.levels as levels',
+                    'venues.name as venue_name',
+                    'venues.building as venue_building',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
-                ->whereYear('date_start', $currentYear)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('isApprovedByVenueCoordinator', 'DESC')
-                ->whereNotNull('isApprovedByVenueCoordinator')
-                ->whereNull('isApprovedByAdmin')
+                ->groupBy(
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.updated_at',
+                )
+                ->whereNull('approved_by_admin_at')
                 ->get();
 
             $events = Event::
-                whereNot('isApprovedByAdmin', null)
-                ->whereYear('date_start', $currentYear)
-                ->whereNot('isApprovedByAdmin', null)
-                ->whereNot('isApprovedByVenueCoordinator', null)
-                ->get(['date_start', 'date_end']);
-
-            $eventsWithDetails = DB::table('events')
-                ->join('venues', 'events.venue_id', '=', 'venues.id')
-                ->join('departments', function ($join) {
-                    $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-                })
-                ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
-                    'venues.name as venue_name',
-                    'events.id as event_id',
-                    'venues.building as venue_building',
-                    DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                    'terms.name as term_name',
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.date as date_start',
+                    'event_junctions.date_end as date_end'
                 )
-                ->whereYear('date_start', $currentYear)
-                ->whereNot('isApprovedByAdmin', null)
-                ->whereNot('isApprovedByVenueCoordinator', null)
-                ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-                ->orderBy('date_start', 'ASC')
+                ->groupBy(
+                    'events.date',
+                    'event_junctions.date_end'
+                )
+                ->whereYear('events.date', $currentYear)
+                ->whereYear('event_junctions.date_end', $currentYear)
                 ->get();
 
+            $eventsWithDetails = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.id as id',
+                    'terms.name as term_name',
+                    'events.name as name',
+                    'events.levels as levels',
+                    'venues.name as venue_name',
+                    'venues.building as venue_building',
+                    'events.date as date_start',
+                    'event_junctions.time_start as time_start',
+                    'event_junctions.date_end as date_end',
+                    'event_junctions.time_end as time_end',
+                    'event_junctions.updated_at as updated_at',
+                    DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+                )
+                ->groupBy(
+                    'events.id',
+                    'terms.name',
+                    'events.name',
+                    'events.levels',
+                    'events.date',
+                    'venues.name',
+                    'venues.building',
+                    'event_junctions.time_end',
+                    'event_junctions.time_start',
+                    'event_junctions.date_end',
+                    'event_junctions.updated_at',
+                )
+                ->get();
         }
-
 
         return Inertia::render('Dashboard/dashboard', [
             'pageTitle' => 'Dashboard',
@@ -232,73 +316,137 @@ class PageController extends Controller
         ]);
     }
 
-
-
-
     public function guest(Request $request)
     {
-        $events_today = DB::table('events')
-            ->join('venues', 'events.venue_id', '=', 'venues.id')
-            ->join('departments', function ($join) {
-                $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-            })
-            ->join('terms', 'events.term_id', '=', 'terms.id')
-            ->select('events.*',
+        $events_today = Event::
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.id as id',
+                'terms.name as term_name',
+                'events.name as name',
+                'events.levels as levels',
                 'venues.name as venue_name',
                 'venues.building as venue_building',
-                DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                'terms.name as term_name',
+                'events.date as date_start',
+                'event_junctions.time_start as time_start',
+                'event_junctions.date_end as date_end',
+                'event_junctions.time_end as time_end',
+                'event_junctions.updated_at as updated_at',
+                DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
             )
-            ->whereNotNull('isApprovedByAdmin')
-            ->where('date_start', today())
-            ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-            ->orderBy('date_start', 'ASC')
+            ->groupBy(
+                'events.id',
+                'terms.name',
+                'events.name',
+                'events.levels',
+                'events.date',
+                'venues.name',
+                'venues.building',
+                'event_junctions.time_end',
+                'event_junctions.time_start',
+                'event_junctions.date_end',
+                'event_junctions.updated_at',
+            )
+            ->whereNotNull('event_junctions.approved_by_admin_at')
+            ->where('events.date', today())
             ->get();
 
-        $event_updates = DB::table('events')
-            ->join('venues', 'events.venue_id', '=', 'venues.id')
-            ->join('departments', function ($join) {
-                $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-            })
-            ->join('terms', 'events.term_id', '=', 'terms.id')
-            ->select('events.*',
+
+        $event_updates = Event::
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.id as id',
+                'terms.name as term_name',
+                'events.name as name',
+                'events.levels as levels',
                 'venues.name as venue_name',
                 'venues.building as venue_building',
-                DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                'terms.name as term_name',
+                'events.date as date_start',
+                'event_junctions.time_start as time_start',
+                'event_junctions.date_end as date_end',
+                'event_junctions.time_end as time_end',
+                'event_junctions.updated_at as updated_at',
+                DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
             )
-
-            ->whereNotNull('isApprovedByAdmin')
-            ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-            ->orderBy('date_start', 'ASC')
+            ->groupBy(
+                'events.id',
+                'terms.name',
+                'events.name',
+                'events.levels',
+                'events.date',
+                'venues.name',
+                'venues.building',
+                'event_junctions.time_end',
+                'event_junctions.time_start',
+                'event_junctions.date_end',
+                'event_junctions.updated_at',
+            )
+            ->whereNotNull('event_junctions.approved_by_admin_at')
             ->get();
 
-        $currentYear = now()->format('Y');
 
         $events = Event::
-            whereNot('isApprovedByAdmin', null)
-            ->whereYear('date_start', $currentYear)
-            ->get(['date_start', 'date_end']);
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.date as date_start',
+                'event_junctions.date_end as date_end'
+            )
+            ->groupBy(
+                'events.date',
+                'event_junctions.date_end'
+            )
+            ->whereNotNull('approved_by_admin_at')
+            ->get();
 
-
-
-        $eventsWithDetails = DB::table('events')
-            ->join('venues', 'events.venue_id', '=', 'venues.id')
-            ->join('departments', function ($join) {
-                $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
-            })
-            ->join('terms', 'events.term_id', '=', 'terms.id')
-            ->select('events.*',
+        $eventsWithDetails = Event::
+            join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+            ->select(
+                'events.id as id',
+                'terms.name as term_name',
+                'events.name as name',
+                'events.levels as levels',
                 'venues.name as venue_name',
                 'venues.building as venue_building',
-                DB::raw('GROUP_CONCAT(departments.accronym SEPARATOR \', \') as department_acronyms'),
-                'terms.name as term_name',
+                'events.date as date_start',
+                'event_junctions.time_start as time_start',
+                'event_junctions.date_end as date_end',
+                'event_junctions.time_end as time_end',
+                'event_junctions.updated_at as updated_at',
+                DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
             )
-            ->whereYear('date_start', $currentYear)
-            ->whereNotNull('isApprovedByAdmin')
-            ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
-            ->orderBy('date_start', 'ASC')
+            ->groupBy(
+                'events.id',
+                'terms.name',
+                'events.name',
+                'events.levels',
+                'events.date',
+                'venues.name',
+                'venues.building',
+                'event_junctions.time_end',
+                'event_junctions.time_start',
+                'event_junctions.date_end',
+                'event_junctions.updated_at',
+            )
+            ->whereNotNull('event_junctions.approved_by_admin_at')
             ->get();
+
+
 
         return Inertia::render('Guest/Dashboard/dashboard', [
             'pageTitle' => 'Dashboard',

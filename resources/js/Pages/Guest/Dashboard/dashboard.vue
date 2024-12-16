@@ -45,7 +45,9 @@ const isHasRecord = (day, month, year, events) => {
         eventEndDate.setHours(23, 59, 59, 999); // Set the end date to the last moment of the day
 
         // Check if the given date falls within the event date range (inclusive)
-        return date >= eventStartDate && date <= eventEndDate;
+        if (date >= eventStartDate && date <= eventEndDate) {
+            return true;
+        }
     });
 };
 
@@ -161,7 +163,7 @@ const openSingleEvent = (id) => {
             <div class="">
                 <table class="w-[600px] border-collapse">
                     <thead>
-                        <tr class="w-full bg-gray-200">
+                        <tr class="w-full text-xs bg-gray-200">
                             <th
                                 class="text-center font-medium text-gray-700 border-b"
                             >
@@ -202,13 +204,17 @@ const openSingleEvent = (id) => {
                             <td>{{ event.name }}</td>
                             <td>{{ event.department_acronyms }}</td>
                             <td>
-                                {{ formatDate(event.date_start) }}
+                                {{ formatDate(event.date_start) }} at
+
                                 {{ formatTime(event.time_start) }}
                             </td>
+
                             <td>
-                                {{ formatDate(event.date_end) }}
+                                {{ formatDate(event.date_end) }} at
+
                                 {{ formatTime(event.time_end) }}
                             </td>
+
                             <td>
                                 <button
                                     @click="openSingleEvent(event.id)"
@@ -454,13 +460,9 @@ const openSingleEvent = (id) => {
 
                             <span>at</span>
 
-                            <span class="font-semibold">
-                                {{ formatTime(event.time_start) }}
-                            </span>
+                            <span class="font-semibold"> </span>
                             <span>-</span>
-                            <span class="font-semibold">
-                                {{ formatTime(event.time_end) }}</span
-                            >
+                            <span class="font-semibold"> </span>
                         </div>
                     </div>
                 </div>
@@ -506,16 +508,15 @@ const openSingleEvent = (id) => {
                                     </h1>
 
                                     <p class="truncate w-[300px]">
-                                        {{ event.date_start }} at
-                                        {{ formatTime(event.time_start) }} to
-                                        {{ event.date_end }}
-                                        {{ formatTime(event.time_end) }}
+                                        {{ formatDate(event.date_start) }} at
+
+                                        {{ formatTime(event.time_start) }}
                                     </p>
                                 </div>
 
                                 <div class="flex justify-end">
                                     <small class="px-4">{{
-                                        timeAgo(event.isApprovedByAdmin)
+                                        timeAgo(event.updated_at)
                                     }}</small>
                                 </div>
                             </div>
@@ -545,13 +546,15 @@ const openSingleEvent = (id) => {
             </p>
 
             <p>
-                <strong>Date Start:</strong> {{ selectedEvent.date_start }}
+                <strong>Date Start:</strong>
+                {{ formatDate(selectedEvent.date_start) }}
                 at
                 {{ formatTime(selectedEvent.time_start) }}
             </p>
 
             <p>
-                <strong>Date End:</strong> {{ selectedEvent.date_end }}
+                <strong>Date End:</strong>
+                {{ formatDate(selectedEvent.date_end) }}
                 at
                 {{ formatTime(selectedEvent.time_end) }}
             </p>
@@ -671,15 +674,16 @@ export default {
         formatDate(date) {
             const newdate = new Date(date);
             const formattedDate = newdate.toLocaleDateString("en-US", {
-                month: "long",
+                month: "short",
                 day: "numeric",
                 year: "numeric",
             });
 
             return formattedDate;
         },
-
         formatTime(time) {
+            if (!time) return ""; // Return empty string if `time` is undefined or null
+
             const [hours, minutes] = time.split(":");
             const formattedHours = hours % 12 || 12;
             const ampm = hours < 12 ? "am" : "pm";

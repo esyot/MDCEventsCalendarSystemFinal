@@ -1068,7 +1068,7 @@ export default {
         formatDate(date) {
             const newdate = new Date(date);
             const formattedDate = newdate.toLocaleDateString("en-US", {
-                month: "long",
+                month: "short",
                 day: "numeric",
                 year: "numeric",
             });

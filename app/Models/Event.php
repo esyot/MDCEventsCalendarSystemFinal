@@ -25,4 +25,11 @@ class Event extends Model
     {
         return $this->belongsTo(Department::class);
     }
+
+    public function eventDepartments()
+    {
+        return $this->hasManyThrough(Department::class, EventDepartment::class, 'event_id', 'id', 'id', 'department_id');
+    }
+
+
 }

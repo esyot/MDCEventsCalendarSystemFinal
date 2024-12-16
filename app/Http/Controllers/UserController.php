@@ -3,16 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
-use App\Models\Permission;
-
 use App\Models\Role;
 use App\Models\User;
-use App\Models\UserPermission;
 use App\Models\UserRoles;
-use App\Models\UsersDepartment;
-use DB;
+use App\Models\UserDepartment;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -32,9 +28,9 @@ class UserController extends Controller
             ->get();
 
         // Fetch departments separately
-        $departments = DB::table('users_departments')
-            ->join('departments', 'users_departments.department_id', '=', 'departments.id')
-            ->get(['users_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
+        $departments = DB::table('user_departments')
+            ->join('departments', 'user_departments.department_id', '=', 'departments.id')
+            ->get(['user_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
 
         // Merge departments with users
         $users->each(function ($user) use ($departments) {
@@ -63,7 +59,7 @@ class UserController extends Controller
 
             $selectedUser = User::find($request->user);
 
-            $departmentIds = UsersDepartment::where('user_id', $selectedUser->id)->get()->pluck('department_id');
+            $departmentIds = UserDepartment::where('user_id', $selectedUser->id)->get()->pluck('department_id');
 
             $selectedUserDepartments = Department::whereIn('id', $departmentIds)->get()->toArray();
 
@@ -126,9 +122,9 @@ class UserController extends Controller
             ->get();
 
         // Fetch departments separately
-        $departments = DB::table('users_departments')
-            ->join('departments', 'users_departments.department_id', '=', 'departments.id')
-            ->get(['users_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
+        $departments = DB::table('user_departments')
+            ->join('departments', 'user_departments.department_id', '=', 'departments.id')
+            ->get(['user_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
 
         // Merge departments with users
         $users->each(function ($user) use ($departments) {
@@ -198,7 +194,7 @@ class UserController extends Controller
                 ['role_id' => $newRoleId]
             );
 
-            UsersDepartment::updateOrCreate(
+            UserDepartment::updateOrCreate(
                 ['user_id' => $user->id],
                 ['department_id' => $request->department]
             );
@@ -231,9 +227,9 @@ class UserController extends Controller
     public function userDepartmentRemove($user, $department)
     {
 
-        $userCount = UsersDepartment::where('user_id', $user)
+        $userCount = UserDepartment::where('user_id', $user)
             ->count();
-        $userDepartment = UsersDepartment::where('user_id', $user)->
+        $userDepartment = UserDepartment::where('user_id', $user)->
             where('department_id', $department);
 
         if ($userDepartment && $userCount > 1) {
@@ -252,7 +248,7 @@ class UserController extends Controller
     public function userDepartmentAdd(Request $request)
     {
 
-        UsersDepartment::create([
+        UserDepartment::create([
             'user_id' => $request->user,
             'department_id' => $request->department
         ]);

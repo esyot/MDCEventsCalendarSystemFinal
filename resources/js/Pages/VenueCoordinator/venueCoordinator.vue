@@ -164,7 +164,7 @@ const removeVenueConfirm = (id) => {
                 <tr
                     v-for="venueCoordinator in venueCoordinators"
                     :key="venueCoordinator.id"
-                    class="hover:bg-gray-50 cursor-pointer"
+                    class="hover:bg-gray-300 bg-gray-100 cursor-pointer"
                 >
                     <td class="px-4 py-2 border-b text-sm text-gray-700">
                         {{ venueCoordinator.lname }},

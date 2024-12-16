@@ -189,7 +189,7 @@ const convertToDate = (month, day, year) => {
         id="eventsDetails"
         class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-40"
     >
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6">
+        <div class="bg-white p-2 rounded">
             <div
                 class="flex justify-between items-center mb-4 border-b border-gray-200"
             >
@@ -254,7 +254,8 @@ const convertToDate = (month, day, year) => {
                             <small>Venue:</small>
                             <i
                                 :class="
-                                    event.isApprovedByVenueCoordinator != null
+                                    event.approved_by_venue_coordinator_at !=
+                                    null
                                         ? 'fas fa-check text-green-500'
                                         : 'fas fa-x text-red-500'
                                 "
@@ -262,7 +263,7 @@ const convertToDate = (month, day, year) => {
                             <small>Admin:</small>
                             <i
                                 :class="
-                                    event.isApprovedByAdmin != null
+                                    event.approved_by_admin_at != null
                                         ? 'fas fa-check text-green-500'
                                         : 'fas fa-x text-red-500'
                                 "
@@ -417,7 +418,8 @@ const convertToDate = (month, day, year) => {
                             <small>Venue Coordinator:</small>
                             <i
                                 :class="
-                                    result.isApprovedByVenueCoordinator != null
+                                    result.approved_by_venue_coordinator_at !=
+                                    null
                                         ? 'fas fa-check text-green-500'
                                         : 'fas fa-x text-red-500'
                                 "
@@ -425,7 +427,7 @@ const convertToDate = (month, day, year) => {
                             <small>Admin:</small>
                             <i
                                 :class="
-                                    result.isApprovedByAdmin != null
+                                    result.approved_by_admin_at != null
                                         ? 'fas fa-check text-green-500'
                                         : 'fas fa-x text-red-500'
                                 "
@@ -497,7 +499,8 @@ const convertToDate = (month, day, year) => {
                             <small>Venue Coordinator:</small>
                             <i
                                 :class="
-                                    result.isApprovedByVenueCoordinator != null
+                                    result.approved_by_venue_coordinator_at !=
+                                    null
                                         ? 'fas fa-check text-green-500'
                                         : 'fas fa-x text-red-500'
                                 "
@@ -505,7 +508,7 @@ const convertToDate = (month, day, year) => {
                             <small>Admin:</small>
                             <i
                                 :class="
-                                    result.isApprovedByAdmin != null
+                                    result.approved_by_admin_at != null
                                         ? 'fas fa-check text-green-500'
                                         : 'fas fa-x text-red-500'
                                 "
@@ -525,7 +528,6 @@ const convertToDate = (month, day, year) => {
     </div>
 
     <!-- /Searched Results -->
-
     <div class="flex flex-col">
         <div class="flex flex-col p-2 space-x-2">
             <div class="flex justify-between">
@@ -861,7 +863,7 @@ const convertToDate = (month, day, year) => {
                             </div>
                             <div class="">
                                 <div
-                                    class="flex w-full justify-around font-bold p-2"
+                                    class="flex w-full justify-around font-bold"
                                 >
                                     <template
                                         v-for="dayOfWeek in daysOfWeek"
@@ -1358,32 +1360,36 @@ const convertToDate = (month, day, year) => {
                                                             "
                                                             multiple
                                                             :size="
-                                                                departments.length
+                                                                departmentsForm.length
                                                             "
                                                         >
                                                             <option
-                                                                v-for="department in departments"
+                                                                v-for="department in departmentsForm"
                                                                 :key="
-                                                                    department.accronym
+                                                                    department
                                                                 "
-                                                                :value="
-                                                                    department.accronym
-                                                                "
-                                                                :selected="
-                                                                    isSelected(
-                                                                        department.accronym
-                                                                    )
-                                                                "
+                                                                :value="[
+                                                                    department.parent,
+                                                                    department.department_id,
+                                                                ]"
                                                             >
                                                                 {{
-                                                                    department.name +
+                                                                    department.department_name +
                                                                     "(" +
-                                                                    department.accronym +
+                                                                    department.acronym +
                                                                     ")"
                                                                 }}
                                                             </option>
                                                         </select>
                                                     </div>
+
+                                                    <input
+                                                        type="hidden"
+                                                        name="departmentSelected[]"
+                                                        :value="
+                                                            departmentSelected
+                                                        "
+                                                    />
                                                     <div>
                                                         <div>
                                                             <label for=""
@@ -1552,6 +1558,8 @@ export default {
             startTimeApproved: false,
             endTimeApproved: false,
             startTimeDisable: true,
+
+            departmentSelected: [],
         };
     },
     inheritAttrs: false,
@@ -1561,7 +1569,7 @@ export default {
         departments: Object,
         venues: Object,
         events: {
-            type: Array,
+            type: Object,
             required: true,
         },
         terms: Object,
@@ -1573,6 +1581,7 @@ export default {
         searchResults: Array,
         selectedDate: {},
         currentVenue: {},
+        departmentsForm: {},
     },
 
     methods: {
@@ -1623,7 +1632,7 @@ export default {
                 // Check if the event venue matches the provided venueId
                 if (
                     event.venue_id === parseInt(venueId) &&
-                    event.isApprovedByAdmin !== null
+                    event.approved_by_admin_at !== null
                 ) {
                     const eventStartDate = new Date(
                         event.date_start + "T00:00:00"
@@ -1908,7 +1917,10 @@ export default {
             return text.replace(/[\[\]\""]/g, "").replace(/,/g, ", ");
         },
 
-        isSelected(departmentAcronym) {
+        isSelected(departmentAcronym, deptIds) {
+            console.log(deptIds);
+            this.departmentsSelected =
+                this.selectedDepartments.includes(deptIds);
             return this.selectedDepartments.includes(departmentAcronym);
         },
 
@@ -1943,89 +1955,59 @@ export default {
         },
 
         onDepartmentChange(day) {
-            const selectedDepts = Array.from(
-                document.getElementById("department-" + day).selectedOptions
-            ).map((option) => option.value);
+            // Initialize arrays to hold the parent and department_id values
+            let parents = [];
+            let departmentIds = [];
 
+            // Access the selected options for the department dropdown
+            Array.from(
+                document.getElementById("department-" + day).selectedOptions
+            ).forEach((option) => {
+                // Each option.value is a string like "parent,department_id"
+                const arr = option.value
+                    .split(",")
+                    .map((value) => value.trim()); // Split and trim the values
+
+                // Add the first value as parent and second value as department_id to arrays
+                parents.push(arr[0] || ""); // Add parent value to the parents array
+                departmentIds.push(arr[1] || ""); // Add department_id value to the departmentIds array
+            });
+
+            // Now you can access the parents and departmentIds arrays outside the forEach loop
+            console.log("Parents:", parents);
+            console.log("Department IDs:", departmentIds);
+
+            this.departmentSelected = departmentIds;
+
+            const selectedDepts = parents;
             const departmentLevels = {
+                GS: [{ label: "Graduate Studies", value: "c5" }],
                 College: [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
+                    { label: "Irregular Students", value: "cQ" },
+                    { label: "4th yrs", value: "c4" },
+                    { label: "4th yrs", value: "c4" },
+                    { label: "3rd yrs", value: "c3" },
+                    { label: "2nd yrs", value: "c2" },
+                    { label: "1st yrs", value: "c1" },
                 ],
-                COE: [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
-                ],
-                CAST: [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
-                ],
-                CCJ: [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
-                ],
-                CON: [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
-                ],
-                CABM: [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
-                ],
-                "CABM-B": [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
-                ],
-                "CABM-H": [
-                    { label: "4th yrs", value: "4th yrs" },
-                    { label: "3rd yrs", value: "3rd yrs" },
-                    { label: "2nd yrs", value: "2nd yrs" },
-                    { label: "1st yrs", value: "1st yrs" },
+
+                HS: [
+                    { label: "K-11", value: "g12" },
+                    { label: "K-12", value: "g11" },
+                    { label: "10th grade", value: "g10" },
+                    { label: "9th grade", value: "g9" },
+                    { label: "8th grade", value: "g8" },
+                    { label: "7th grade", value: "g7" },
                 ],
                 ELEM: [
-                    { label: "6th grade", value: "6th grade" },
-                    { label: "5th grade", value: "5th grade" },
-                    { label: "4th grade", value: "4th grade" },
-                    { label: "3rd grade", value: "3rd grade" },
-                    { label: "2nd grade", value: "2nd grade" },
-                    { label: "1st grade", value: "1st grade" },
-                ],
-                JHS: [
-                    { label: "10th grade", value: "10th grade" },
-                    { label: "9th grade", value: "9th grade" },
-                    { label: "8th grade", value: "8th grade" },
-                    { label: "7th grade", value: "7th grade" },
-                ],
-                HS: [
-                    { label: "K-11", value: "K-11" },
-                    { label: "K-12", value: "K-12" },
-                    { label: "10th grade", value: "10th grade" },
-                    { label: "9th grade", value: "9th grade" },
-                    { label: "8th grade", value: "8th grade" },
-                    { label: "7th grade", value: "7th grade" },
-                ],
-                GS: [{ label: "None", value: "None" }],
-                SHS: [
-                    { label: "K-11", value: "K-11" },
-                    { label: "K-12", value: "K-12" },
-                ],
-                "PRE-K": [
-                    { label: "Kinder 1", value: "Kinder 1" },
-                    { label: "Kinder 2", value: "Kinder 2" },
+                    { label: "6th grade", value: "g6" },
+                    { label: "5th grade", value: "g5" },
+                    { label: "4th grade", value: "g4" },
+                    { label: "3rd grade", value: "g3" },
+                    { label: "2nd grade", value: "g2" },
+                    { label: "1st grade", value: "g1" },
+                    { label: "Kinder 1", value: "k2" },
+                    { label: "Kinder 2  ", value: "k1" },
                 ],
             };
 

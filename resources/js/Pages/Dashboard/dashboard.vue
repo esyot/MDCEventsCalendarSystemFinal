@@ -51,7 +51,7 @@ const openSingleEvent = (id) => {
             </div>
 
             <div class="">
-                <table class="w-[500px] border-collapse">
+                <table class="w-[700px] border-collapse">
                     <thead>
                         <tr class="w-full bg-gray-200">
                             <th
@@ -402,40 +402,44 @@ const openSingleEvent = (id) => {
         v-if="isModalOpen"
         class="flex fixed inset-0 bg-gray-800 justify-center items-center bg-opacity-50 z-50"
     >
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-            <p class="text-lg font-semibold mb-2">
-                <strong>Title:</strong> {{ selectedEvent.name }}
-            </p>
+        <div class="bg-white rounded">
+            <div class="p-2">
+                <p class="mb-2">
+                    <strong>Title:</strong> {{ selectedEvent.name }}
+                </p>
 
-            <p class="text-black-700 mb-2">
-                <strong>Venue:</strong> {{ selectedEvent.venue_name }} at
-                {{ selectedEvent.venue_building }}
-            </p>
+                <p class="mb-2">
+                    <strong>Venue:</strong> {{ selectedEvent.venue_name }} at
+                    {{ selectedEvent.venue_building }}
+                </p>
 
-            <p class="text-black-700 mb-2">
-                <strong>Date Start:</strong> {{ selectedEvent.date_start }} at
-                {{ formatTime(selectedEvent.time_start) }}
-            </p>
+                <p class="mb-2">
+                    <strong>Date Start:</strong>
+                    {{ formatDate(selectedEvent.date_start) }} at
+                    {{ formatTime(selectedEvent.time_start) }}
+                </p>
 
-            <p class="text-black-700 mb-4">
-                <strong>Date End:</strong> {{ selectedEvent.date_end }} at
-                {{ formatTime(selectedEvent.time_end) }}
-            </p>
+                <p class="mb-4">
+                    <strong>Date End:</strong>
+                    {{ formatDate(selectedEvent.date_end) }} at
+                    {{ formatTime(selectedEvent.time_end) }}
+                </p>
 
-            <div class="flex justify-end items-center space-x-4">
-                <button
-                    @click="closeModal"
-                    class="p-2 border border-gray-300 text-gray-800 hover:bg-gray-200 rounded-lg transition duration-200"
-                >
-                    Close
-                </button>
+                <div class="flex justify-end items-center space-x-1">
+                    <button
+                        @click="closeModal"
+                        class="p-2 border border-gray-300 text-gray-800 hover:opacity-50 rounded"
+                    >
+                        Close
+                    </button>
 
-                <a
-                    href="/eventRequest"
-                    class="p-2 bg-blue-500 text-white hover:bg-blue-400 rounded-lg transition duration-200"
-                >
-                    View in Event Requests
-                </a>
+                    <a
+                        href="/eventRequest"
+                        class="p-2 bg-blue-500 text-white hover:opacity-50 rounded"
+                    >
+                        View in Event Requests
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -490,7 +494,7 @@ export default {
             default: () => [],
         },
         events_today: {
-            type: Array,
+            type: Object,
             default: () => [],
         },
         eventsWithDetails: {
@@ -536,7 +540,7 @@ export default {
         formatDate(date) {
             const newdate = new Date(date);
             const formattedDate = newdate.toLocaleDateString("en-US", {
-                month: "long",
+                month: "short",
                 day: "numeric",
                 year: "numeric",
             });
