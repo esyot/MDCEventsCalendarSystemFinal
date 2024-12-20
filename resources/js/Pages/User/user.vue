@@ -125,8 +125,6 @@ const modalSelectedUserClose = () => {
 </script>
 
 <template>
-    <!-- selected User -->
-
     <div
         id="modalSelectedUser"
         v-if="selectedUser != null"
@@ -149,18 +147,18 @@ const modalSelectedUserClose = () => {
                         :key="department"
                     >
                         <span> {{ department.name }}</span>
-                        <a
-                            :href="
-                                '/users/user-remove-department/' +
-                                selectedUser.id +
-                                '/' +
-                                department.id
+                        <button
+                            @click="
+                                removeUserDepartment(
+                                    selectedUser.id,
+                                    department.id
+                                )
                             "
                         >
                             <i
                                 class="fas fa-trash text-red-500 hover:opacity-50"
                             ></i>
-                        </a>
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -217,12 +215,7 @@ const modalSelectedUserClose = () => {
             </div>
 
             <div class="p-2">
-                <form
-                    value="{{ search_value }}"
-                    action="/user-search"
-                    method="GET"
-                    class="flex"
-                >
+                <form @submit.prevent="userSearch" method="POST" class="flex">
                     <div
                         class="p-2 space-x-1 border border-gray-300 w-full rounded-l-full shadow-inner"
                     >
@@ -272,7 +265,10 @@ const modalSelectedUserClose = () => {
                                 :id="'role-dropdown-' + user.id"
                                 class="flex flex-col hidden"
                             >
-                                <form action="/user-add-role" method="GET">
+                                <form
+                                    @submit.prevent="userAddRole"
+                                    method="POST"
+                                >
                                     <input
                                         type="hidden"
                                         name="id"
@@ -300,33 +296,13 @@ const modalSelectedUserClose = () => {
                                     <label class="font-medium"
                                         >Select Role</label
                                     >
-                                    <div>
-                                        <input
-                                            type="radio"
-                                            name="role"
-                                            id="superadmin"
-                                            value="superadmin"
-                                        />
-                                        <label for="superadmin"
-                                            >Superadmin</label
-                                        >
-                                    </div>
-                                    <div>
-                                        <input
-                                            type="radio"
-                                            name="role"
-                                            id="admin"
-                                            value="admin"
-                                        />
-                                        <label for="admin">Admin</label>
-                                    </div>
 
                                     <div>
                                         <input
                                             type="radio"
                                             name="role"
                                             id="event-coordinator"
-                                            value="event-coordinator"
+                                            value="event_coordinator"
                                         />
                                         <label for="event-coordinator"
                                             >Event Coordinator</label
@@ -337,7 +313,7 @@ const modalSelectedUserClose = () => {
                                             type="radio"
                                             name="role"
                                             id="venue-coordinator"
-                                            value="venue-coordinator"
+                                            value="venue_coordinator"
                                         />
                                         <label for="venue-coordinator"
                                             >Venue Coordinator</label
@@ -436,12 +412,12 @@ const modalSelectedUserClose = () => {
                             </button>
                         </td>
                         <td class="py-3 text-center">
-                            <a
-                                :href="'/users/' + user.user_id"
+                            <button
+                                @click="navigateTo(user.user_id)"
                                 class="px-4 py-2 text-blue-100 rounded hover:opacity-50 bg-blue-500"
                             >
                                 View Department
-                            </a>
+                            </button>
                         </td>
                     </tr>
                 </tbody>
@@ -465,7 +441,7 @@ const modalSelectedUserClose = () => {
                             </span>
                         </div>
 
-                        <form action="/user-role-update" method="GET">
+                        <form @submit.prevent="userRoleUpdate" method="POST">
                             <input
                                 type="hidden"
                                 name="user"
@@ -493,8 +469,8 @@ const modalSelectedUserClose = () => {
                                     >
                                         <input
                                             type="radio"
-                                            name="role"
                                             :value="role"
+                                            name="role"
                                             v-model="currentRole"
                                             class="form-radio text-blue-500"
                                         />
@@ -528,44 +504,73 @@ const modalSelectedUserClose = () => {
                 >
                     <div class="bg-white rounded">
                         <div class="p-2">
-                            <form
-                                :action="'/user-delete-role/' + user.user_id"
-                                method="GET"
-                            >
-                                <h1 class="text-xl">
-                                    Are you sure to remove role for this user?
-                                </h1>
-                                <div class="flex justify-end p-2 space-x-1">
-                                    <button
-                                        type="button"
-                                        @click="closeDeleteModal"
-                                        class="px-4 py-2 bg-gray-500 text-gray-100 hover:opacity-50 rounded"
-                                    >
-                                        No
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        class="px-4 py-2 bg-blue-500 text-blue-100 hover:opacity-50 rounded"
-                                    >
-                                        Yes
-                                    </button>
-                                </div>
-                            </form>
+                            <h1 class="text-xl">
+                                Are you sure to remove role for this user?
+                            </h1>
+                            <div class="flex justify-end p-2 space-x-1">
+                                <button
+                                    type="button"
+                                    @click="closeDeleteModal"
+                                    class="px-4 py-2 bg-gray-500 text-gray-100 hover:opacity-50 rounded"
+                                >
+                                    No
+                                </button>
+                                <button
+                                    @click="deleteUserRole(user.user_id)"
+                                    type="submit"
+                                    class="px-4 py-2 bg-blue-500 text-blue-100 hover:opacity-50 rounded"
+                                >
+                                    Yes
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- /loop -->
         </div>
     </div>
 </template>
 
 <script>
+import { router } from "@inertiajs/vue3";
+
 export default {
     data() {
         return {
             searchQuery: "",
         };
+    },
+    methods: {
+        navigateTo(userId) {
+            router.get(`/users?user=${userId}`);
+        },
+
+        userAddRole(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            router.post("/user-add-role", formData);
+        },
+        userSearch(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            router.post("/users", formData);
+        },
+        removeUserDepartment(userId, departmentId) {
+            router.delete(
+                `/users/user-remove-department/${userId}/${departmentId}`
+            );
+        },
+        userRoleUpdate(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            router.post("/user-role-update", formData);
+        },
+        deleteUserRole(userId) {
+            router.delete(`/user-delete-role/${userId}`);
+        },
     },
     computed: {
         filteredUsers() {

@@ -159,11 +159,12 @@ const venueApproveConfirm = (id) => {
                             >
                                 No
                             </button>
-                            <a
-                                :href="'/admin/event-delete/' + event.event_id"
+                            <button
+                                @click="eventDeleteConfirm(event.event_id)"
                                 class="px-4 py-2 bg-red-500 text-red-100 rounded hover:opacity-50"
-                                >Yes</a
                             >
+                                Yes
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -184,18 +185,18 @@ const venueApproveConfirm = (id) => {
                             :value="event.event_id"
                             name="id"
                         />
-                        <div>
-                            <input
-                                type="hidden"
-                                name="event_time_start"
-                                :value="startTime"
-                            />
-                            <input
-                                type="hidden"
-                                name="event_time_end"
-                                :value="endTime"
-                            />
-                        </div>
+
+                        <input
+                            type="hidden"
+                            name="event_time_start"
+                            :value="startTime"
+                        />
+                        <input
+                            type="hidden"
+                            name="event_time_end"
+                            :value="endTime"
+                        />
+
                         <div class="flex w-full justify-between mb-4">
                             <h1 class="text-2xl">Update Details</h1>
 
@@ -221,7 +222,7 @@ const venueApproveConfirm = (id) => {
                                         onVenueChange(
                                             selectedDateForm,
                                             $event.target.value,
-                                            eventsWithDetails
+                                            events
                                         )
                                     "
                                 >
@@ -313,7 +314,6 @@ const venueApproveConfirm = (id) => {
                                             name="hourStart"
                                             v-model="selectedHourStart"
                                             class="border p-2 rounded focus:outline-none"
-                                            :disabled="disableTimePicker"
                                             @change="
                                                 timeStartHourChange(
                                                     $event.target.value
@@ -340,7 +340,6 @@ const venueApproveConfirm = (id) => {
                                             name="minuteStart"
                                             v-model="selectedMinuteStart"
                                             class="border p-2 rounded focus:outline-none"
-                                            :disabled="disableTimePicker"
                                             @change="
                                                 timeStartMinutesChange(
                                                     $event.target.value
@@ -358,7 +357,6 @@ const venueApproveConfirm = (id) => {
                                     </div>
                                 </div>
 
-                                <!-- End Time Picker -->
                                 <div class="p-2">
                                     <label
                                         for="ampmEnd"
@@ -378,7 +376,6 @@ const venueApproveConfirm = (id) => {
                                             name="ampmEnd"
                                             v-model="selectedAMPMEnd"
                                             class="border p-2 rounded focus:outline-none"
-                                            :disabled="startTimeDisable"
                                             @change="
                                                 timeEndPeriodChange(
                                                     $event.target.value
@@ -395,7 +392,6 @@ const venueApproveConfirm = (id) => {
                                             name="hourEnd"
                                             v-model="selectedHourEnd"
                                             class="border p-2 rounded focus:outline-none"
-                                            :disabled="startTimeDisable"
                                             @change="
                                                 timeEndHourChange(
                                                     $event.target.value
@@ -517,6 +513,7 @@ const venueApproveConfirm = (id) => {
                                         id="level"
                                         multiple
                                         class="w-full"
+                                        required
                                     >
                                         <option value="k1">
                                             Kindergarten 1
@@ -964,6 +961,8 @@ const venueApproveConfirm = (id) => {
 <script>
 import axios from "axios";
 
+import { router } from "@inertiajs/vue3";
+
 const hours = [
     "12",
     "01",
@@ -1021,8 +1020,8 @@ export default {
             startHour: "",
             startMinutes: "",
 
-            startTime: null, // Combined start time
-            endTime: null, // Combined end time
+            startTime: null,
+            endTime: null,
 
             selectedAMPMStart: null,
             selectedAMPMEnd: null,
@@ -1062,17 +1061,17 @@ export default {
     },
     methods: {
         updateSelectedDepartments(event, departmentId) {
-            console.log(departmentId, this.selectedDepartments);
+            if (!Array.isArray(this.selectedDepartments)) {
+                this.selectedDepartments = [];
+            }
 
-            if (event == true) {
-                // Add departmentId to selectedDepartments array if not already present
+            if (event) {
                 if (
                     !this.selectedDepartments.includes(departmentId.toString())
                 ) {
                     this.selectedDepartments.push(departmentId.toString());
                 }
             } else {
-                // Remove departmentId from selectedDepartments array
                 this.selectedDepartments = this.selectedDepartments.filter(
                     (id) => id !== departmentId.toString()
                 );
@@ -1082,61 +1081,73 @@ export default {
                 "Updated department selection:",
                 this.selectedDepartments
             );
-        }, // Check if department is selected (for initial rendering)
-        isSelectedDepartment(departmentId) {
-            return this.departmentSelected.includes(departmentId); // Check if departmentId exists in the selected list
         },
+        isSelectedDepartment(departmentId) {
+            let arrayedString;
 
+            if (typeof this.selectedDepartments === "string") {
+                arrayedString = this.selectedDepartments
+                    .split(",")
+                    .map((item) => item.trim());
+            } else if (Array.isArray(this.selectedDepartments)) {
+                arrayedString = this.selectedDepartments.map((item) =>
+                    item.toString().trim()
+                );
+            } else {
+                return false;
+            }
+
+            return arrayedString.includes(departmentId.toString().trim());
+        },
         eventUpdate(event) {
             const date_start = event.date_start;
             const date_end = event.date_end;
             const time_start = event.time_start;
             const time_end = event.time_end;
 
+            this.selectedDepartments = event.department_id;
             this.departmentSelected = event.department_id;
 
-            // Handle the start time
-            const timeObj_start = new Date(`1970-01-01T${time_start}`); // Treat as local time (no 'Z' for UTC)
+            this.startTime = event.time_start;
+            this.endTime = event.time_end;
+
+            const timeObj_start = new Date(`1970-01-01T${time_start}`);
             let hour_start = timeObj_start.getHours();
             let period_start = hour_start < 12 ? "AM" : "PM";
-            hour_start = hour_start % 12 || 12; // Convert to 12-hour format, handle midnight/noon
-            hour_start = hour_start.toString().padStart(2, "0"); // Ensure two-digit hour
+            hour_start = hour_start % 12 || 12;
+            hour_start = hour_start.toString().padStart(2, "0");
 
             const minute_start = timeObj_start
                 .getMinutes()
                 .toString()
-                .padStart(2, "0"); // Ensure two-digit minutes
+                .padStart(2, "0");
 
-            // Handle the end time (assuming it's the same format as time_start)
-            const timeObj_end = new Date(`1970-01-01T${time_end}`); // Same logic for end time
+            const timeObj_end = new Date(`1970-01-01T${time_end}`);
             let hour_end = timeObj_end.getHours();
             let period_end = hour_end < 12 ? "AM" : "PM";
-            hour_end = hour_end % 12 || 12; // Convert to 12-hour format
-            hour_end = hour_end.toString().padStart(2, "0"); // Ensure two-digit hour
+            hour_end = hour_end % 12 || 12;
+            hour_end = hour_end.toString().padStart(2, "0");
 
             const minute_end = timeObj_end
                 .getMinutes()
                 .toString()
-                .padStart(2, "0"); // Ensure two-digit minutes
+                .padStart(2, "0");
 
             const deptIds = event.department_id
                 .split(",")
-                .map((id) => parseInt(id)); // Split the string into an array and convert to integers
+                .map((id) => parseInt(id));
 
             const departmentList = this.departmentsForm;
 
             const filteredDepartments = departmentList.filter((department) => {
-                // Only keep departments where department.id is in the deptIds array
                 return deptIds.includes(department.id);
             });
 
-            // Set the form data
             this.selectedDateStartForm = date_start;
             this.selectedDateEndForm = date_end;
             this.selectedAMPMStart = period_start;
             this.selectedHourStart = hour_start;
             this.selectedMinuteStart = minute_start;
-
             this.selectedAMPMEnd = period_end;
             this.selectedHourEnd = hour_end;
             this.selectedMinuteEnd = minute_end;
@@ -1171,7 +1182,6 @@ export default {
             let date_end = date;
             let date_start = this.selectedDateForm;
 
-            // Function to format Date object to 'YYYY-MM-DD'
             const formatDate = (dateObj) => {
                 const year = dateObj.getFullYear();
                 const month = dateObj.getMonth() + 1;
@@ -1181,18 +1191,15 @@ export default {
                     .padStart(2, "0")}`;
             };
 
-            // Format date_end if it's a Date object
             if (typeof date === "object" && date instanceof Date) {
                 date_end = formatDate(date);
             }
 
-            // Format date_start (since it's always an object)
             if (typeof date_start === "object" && date_start instanceof Date) {
                 date_start = formatDate(date_start);
             }
 
             const filteredEvents = events.filter((event) => {
-                // Check if the event venue matches the provided venueId
                 if (
                     event.venue_id === parseInt(venueId) &&
                     event.approved_by_admin_at !== null
@@ -1271,9 +1278,9 @@ export default {
 
             let hour24 = parseInt(hour, 10);
             if (period === "PM" && hour24 !== 12) {
-                hour24 += 12; // Convert PM to 24-hour format (except for 12 PM)
+                hour24 += 12;
             } else if (period === "AM" && hour24 === 12) {
-                hour24 = 0; // Convert 12 AM to 0 in 24-hour format
+                hour24 = 0;
             }
             return hour24;
         },
@@ -1283,25 +1290,19 @@ export default {
                 const endHour = this.convertTimeToHour(range.end);
                 let hoursInRange = [];
 
-                // Case 1: Start is AM and End is AM - Disable hours between start and end in the AM range
                 if (startHour < 12 && endHour < 12) {
                     for (let h = startHour; h <= endHour; h++) {
                         hoursInRange.push(h % 24);
                     }
-                }
-                // Case 2: Start is AM and End is PM - Disable all hours from start to 12 PM
-                else if (startHour < 12 && endHour >= 12) {
-                    // Disable hours from the start to 12 PM (AM)
+                } else if (startHour < 12 && endHour >= 12) {
                     for (let h = startHour; h < 12; h++) {
                         hoursInRange.push(h % 24);
                     }
-                    // Disable all hours from 12 PM to the end hour
+
                     for (let h = 12; h <= endHour; h++) {
                         hoursInRange.push(h % 24);
                     }
-                }
-                // Case 3: Start is PM and End is PM - Disable hours between start and end in the PM range
-                else if (startHour >= 12 && endHour >= 12) {
+                } else if (startHour >= 12 && endHour >= 12) {
                     for (let h = startHour; h <= endHour; h++) {
                         hoursInRange.push(h % 24);
                     }
@@ -1313,12 +1314,10 @@ export default {
             const hourInt = parseInt(hour);
             let hour24 = hourInt;
 
-            // Convert to 24-hour format if PM
             if (selectedTimePeriod === "PM" && hourInt !== 12) {
                 hour24 = hourInt + 12;
             }
 
-            // Return if the hour is in the disabled range
             return disabledHours.includes(hour24);
         },
         updateStartTime() {
@@ -1326,44 +1325,37 @@ export default {
             let minutes = this.startMinutes;
             let period = this.startPeriod ? this.startPeriod.toUpperCase() : "";
 
-            if (period === "PM" && hour < 12) hour = parseInt(hour) + 12; // Convert PM hour
-            if (period === "AM" && hour == 12) hour = 0; // Convert 12 AM to 00
+            if (period === "PM" && hour < 12) hour = parseInt(hour) + 12;
+            if (period === "AM" && hour == 12) hour = 0;
 
             const formattedStartTime = new Date();
             formattedStartTime.setHours(hour);
             formattedStartTime.setMinutes(minutes);
 
-            // Store the start time in the component
             this.startTime = formattedStartTime;
 
-            // Call watchTimeChange to check for overlap
             this.watchTimeChange();
         },
 
-        // Method to update end time from the separate components
         updateEndTime() {
             let hour = this.endHour;
             let minutes = this.endMinutes;
-            let period = this.endPeriod ? this.endPeriod.toUpperCase() : ""; // AM/PM should be uppercase
+            let period = this.endPeriod ? this.endPeriod.toUpperCase() : "";
 
-            if (period === "PM" && hour < 12) hour = parseInt(hour) + 12; // Convert PM hour
-            if (period === "AM" && hour == 12) hour = 0; // Convert 12 AM to 00
+            if (period === "PM" && hour < 12) hour = parseInt(hour) + 12;
+            if (period === "AM" && hour == 12) hour = 0;
 
             const formattedEndTime = new Date();
             formattedEndTime.setHours(hour);
             formattedEndTime.setMinutes(minutes);
 
-            // Store the end time in the component
             this.endTime = formattedEndTime;
 
-            // Call watchTimeChange to check for overlap
             this.watchTimeChange();
         },
 
-        // Function to check if the time ranges overlap
         isTimeOverlapping(startTime, endTime, rangeStart, rangeEnd) {
-            // Check if the selected range overlaps with the existing range
-            return startTime < rangeEnd && endTime > rangeStart; // Adjust comparison logic as needed
+            return startTime < rangeEnd && endTime > rangeStart;
         },
         formatSelectedTime(date) {
             return date.toLocaleTimeString("en-US", {
@@ -1380,7 +1372,7 @@ export default {
             if (modifier === "PM" && hours !== 12) hours += 12;
             if (modifier === "AM" && hours === 12) hours = 0;
 
-            return hours * 60 + minutes; // Convert to minutes
+            return hours * 60 + minutes;
         },
         rangesOverlap(range1, range2) {
             const range1Start = this.convertTimeToMinutes(range1.start);
@@ -1388,33 +1380,26 @@ export default {
             const range2Start = this.convertTimeToMinutes(range2.start);
             const range2End = this.convertTimeToMinutes(range2.end);
 
-            // Check for overlap
             return range1Start < range2End && range1End > range2Start;
         },
 
-        // Function to handle time change and check for overlaps
         watchTimeChange() {
-            let date = this.startTime; // Date object
+            let date = this.startTime;
 
-            // Extract the hour and minute
-            let hour = date.getHours(); // 4 (for 4 AM/PM)
-            let minutes = date.getMinutes(); // 6 (for 06 minutes)
+            let hour = date.getHours();
+            let minutes = date.getMinutes();
 
-            // Determine AM/PM period
             let period = hour >= 12 ? "PM" : "AM";
 
-            // Convert hour to 12-hour format
             let formattedHour = hour % 12;
-            if (formattedHour === 0) formattedHour = 12; // Handle 0 hour as 12
+            if (formattedHour === 0) formattedHour = 12;
 
-            // Ensure hour, minutes, and period are not null or undefined
             if (formattedHour != null && minutes != null && period != null) {
-                // Convert to string if needed (for example "8:30 PM")
                 let timeString = `${formattedHour}:${
                     minutes < 10 ? "0" + minutes : minutes
                 } ${period}`;
 
-                console.log(`Time String: ${timeString}`); // Logs the formatted time
+                console.log(`Time String: ${timeString}`);
 
                 this.startTimeApproved = true;
                 this.startTimeDisable = false;
@@ -1422,13 +1407,10 @@ export default {
                 console.error("Invalid time components");
             }
 
-            // Ensure that startTime and endTime are valid Date objects
             if (this.startTime && this.endTime) {
-                // Convert start and end times to milliseconds
                 const startTime = this.startTime.getTime();
                 const endTime = this.endTime.getTime();
 
-                // Check if endTime is greater than startTime
                 if (endTime <= startTime) {
                     alert("End time must be greater than start time.");
                     this.selectedHourEnd = null;
@@ -1438,7 +1420,6 @@ export default {
                     return;
                 }
 
-                // Format the start and end times to 'hh:mm AM/PM'
                 const formattedStartTime = this.formatSelectedTime(
                     this.startTime
                 );
@@ -1450,7 +1431,7 @@ export default {
                 };
 
                 let isOverlapping = false;
-                // Loop through existing ranges to check for overlap
+
                 for (let existingRange of this.unavailableTimes) {
                     if (this.rangesOverlap(formattedTimes, existingRange)) {
                         isOverlapping = true;
@@ -1525,6 +1506,9 @@ export default {
             Inertia.post("/admin/event-update", formData, {
                 preserveState: true,
             });
+        },
+        eventDeleteConfirm(eventId) {
+            router.delete(`/admin/event-delete/${eventId}`);
         },
     },
 };

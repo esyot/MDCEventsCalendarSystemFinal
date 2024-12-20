@@ -8,14 +8,12 @@ use App\Models\EventJunction;
 use App\Models\Role;
 use App\Models\Term;
 use App\Models\UserDepartment;
-use App\Models\UserRoles;
+use App\Models\UserRole;
 use App\Models\Venue;
 use App\Models\VenueCoordinator;
 use Carbon\Carbon;
-use DB;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Permission;
-use App\Models\UserPermission;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\EventRequest;
@@ -24,13 +22,12 @@ use Illuminate\Support\Facades\Storage;
 
 class EventRequestController extends Controller
 {
-    // Display a list of all event requests
     public function index()
     {
 
         $rolesAllowed = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->pluck('id');
 
-        $user_role_id = UserRoles::where('user_id', Auth::user()->id)->whereIn('role_id', $rolesAllowed)
+        $user_role_id = UserRole::where('user_id', Auth::user()->id)->whereIn('role_id', $rolesAllowed)
             ->first();
 
         $user_role_role = Role::find($user_role_id->role_id);
@@ -172,6 +169,7 @@ class EventRequestController extends Controller
                     'users.lname as user_lname',
                     'events.id as event_id',
                     'terms.name as term_name',
+                    'terms.id as term_id',
                     'events.name as event_name',
                     'events.levels as levels',
                     'venues.name as venue_name',
@@ -194,6 +192,7 @@ class EventRequestController extends Controller
                     'users.lname',
                     'events.id',
                     'terms.name',
+                    'terms.id',
                     'events.name',
                     'events.levels',
                     'events.date',
@@ -211,6 +210,7 @@ class EventRequestController extends Controller
                 ->get();
 
         }
+
 
         $departmentsWithParent = DB::table('departments as t1')
             ->leftJoin('departments as t2', 't1.parent_id', '=', 't2.id')
@@ -243,7 +243,6 @@ class EventRequestController extends Controller
         $departmentsForm = $departmentsWithNoParent->concat($departmentsWithParent);
 
 
-
         return Inertia::render('EventRequest/eventRequest', [
             'departmentsForm' => $departmentsForm,
             'events' => $events,
@@ -258,16 +257,15 @@ class EventRequestController extends Controller
 
     public function show($id)
     {
-        $event = EventRequest::findOrFail($id); // Find event by ID or fail
+        $event = EventRequest::find($id);
         return Inertia::render('EventRequest/showEvent', [
             'event' => $event
         ]);
     }
 
-    // Show the form for editing a specific event request
     public function edit($id)
     {
-        $event = EventRequest::findOrFail($id); // Find event by ID or fail
+        $event = EventRequest::find($id);
         return Inertia::render('EventRequest/editEvent', [
             'event' => $event
         ]);
@@ -276,23 +274,29 @@ class EventRequestController extends Controller
 
     public function destroy($id)
     {
-        $event = EventRequest::findOrFail($id);
+        $event = EventRequest::find($id);
         $event->delete();
 
         return redirect()->route('eventRequests.index')->with('success', 'Event request deleted successfully.');
     }
 
+
     public function create_request(Request $request)
     {
 
-        $department = array_unique(array_map(function ($item) {
-            return explode(',', $item)[0];
-        }, $request->event_departments));
+        $department = collect($request->event_departments)
+            ->map(fn($item) => explode(',', $item)[0])
+            ->unique()
+            ->toArray();
 
+        if (count($department) > 1) {
+            $custom = Department::where('name', 'Custom')->pluck('id')->first();
+            $department_id = $custom;
+        } else {
+            $department_id = Department::where('accronym', $department[0])->pluck('id')->first();
+        }
 
         $file = $request->file('activity_design');
-
-
         $formattedStartDateString = preg_replace('/\s\(.*\)$/', '', $request->event_time_start);
         $formatTimeStart = Carbon::parse($formattedStartDateString);
         $formattedTimeStart = $formatTimeStart->format('H:i');
@@ -303,124 +307,58 @@ class EventRequestController extends Controller
 
 
 
-        if (count($department) > 1) {
-            $custom = Department::where('name', 'Custom')->pluck('id')->first();
-
-        } else {
-            $department_id = Department::where('accronym', $department[0])->pluck('id')->first();
-        }
 
         if ($file != null) {
-            $request->validate([
-                'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240',
-            ]);
-            $directory = 'files/uploads';
-
-
-            if (! Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory);
-            }
-
             $filename = $file->getClientOriginalName();
-            $filePath = $file->storeAs($directory, $filename, 'public');
+            $filePath = $file->storeAs('files/uploads', $filename, 'public');
+        }
 
-            $event1 = Event::create([
-                'name' => $request->event_name,
-                'date' => $request->event_date_start,
-                'term_id' => $request->event_term_id,
-                'user_id' => Auth::user()->id,
-                'department_id' => count($department) > 1 ? $custom : $department_id,
-                'levels' => json_encode($request->event_levels),
-            ]);
 
-            $event2 = EventJunction::create([
-                'event_id' => $event1->id,
-                'date_end' => $request->event_date_end,
-                'time_start' => $formattedTimeStart,
-                'time_end' => $formattedTimeEnd,
-                'venue_id' => $request->event_venue,
-                'filename' => $filename
-            ]);
+        $event1 = Event::create([
+            'name' => $request->event_name,
+            'date' => $request->event_date_start,
+            'term_id' => $request->event_term_id,
+            'user_id' => Auth::user()->id,
+            'department_id' => $department_id,
+            'levels' => json_encode($request->event_levels),
+        ]);
+        $event2Data = [
+            'event_id' => $event1->id,
+            'date_end' => $request->event_date_end,
+            'time_start' => $formattedTimeStart,
+            'time_end' => $formattedTimeEnd,
+            'venue_id' => $request->event_venue,
+        ];
 
-            $event = [
-                'event1' => $event1,
-                'event2' => $event2
-            ];
+        if ($file) {
+            $event2Data['filename'] = $filename;
+        }
 
-            $departments = $request->departmentSelected;
+        $event2 = EventJunction::create($event2Data);
 
-            // Loop based on the count of departments
-            for ($i = 0; $i < count($departments); $i++) {
-                // Assuming each value in $departments is a string of comma-separated department IDs
-                $deptIds = explode(',', $departments[$i]);
-
-                // Loop through each department ID in the exploded value
-                foreach ($deptIds as $deptId) {
-                    // Trim whitespace in case of extra spaces in the department ID string
-                    $deptId = trim($deptId);
-
-                    // Create the EventDepartment entry for each department ID
-                    EventDepartment::create([
-                        'event_id' => $event1->id,
-                        'department_id' => $deptId,
-                    ]);
-                }
+        foreach ($request->departmentSelected as $dept) {
+            $deptIds = explode(',', $dept);
+            foreach ($deptIds as $deptId) {
+                EventDepartment::create([
+                    'event_id' => $event1->id,
+                    'department_id' => trim($deptId),
+                ]);
             }
+        }
 
+        if ($event1 && $event2) {
+
+            return redirect()->route('calendar')->with('success', 'Event has been successfully added!');
 
         } else {
-            $event1 = Event::create([
-                'name' => $request->event_name,
-                'date' => $request->event_date_start,
-                'term_id' => $request->event_term_id,
-                'user_id' => Auth::user()->id,
-                'department_id' => count($department) > 1 ? $custom : $department_id,
-                'levels' => json_encode($request->event_levels),
-            ]);
 
-
-
-            $event2 = EventJunction::create([
-                'event_id' => $event1->id,
-                'date_end' => $request->event_date_end,
-                'time_start' => $formattedTimeStart,
-                'time_end' => $formattedTimeEnd,
-                'venue_id' => $request->event_venue,
-            ]);
-
-
-            $event = [
-                'event1' => $event1,
-                'event2' => $event2
-            ];
-
-            $departments = $request->departmentSelected;
-
-            // Loop based on the count of departments
-            for ($i = 0; $i < count($departments); $i++) {
-                // Assuming each value in $departments is a string of comma-separated department IDs
-                $deptIds = explode(',', $departments[$i]);
-
-                // Loop through each department ID in the exploded value
-                foreach ($deptIds as $deptId) {
-                    // Trim whitespace in case of extra spaces in the department ID string
-                    $deptId = trim($deptId);
-
-                    // Create the EventDepartment entry for each department ID
-                    EventDepartment::create([
-                        'event_id' => $event1->id,
-                        'department_id' => $deptId,
-                    ]);
-                }
-            }
-
+            return redirect()->route('calendar')->with('error', 'Event request failed!');
 
 
         }
-        if ($event) {
-            return redirect()->route('calendar')->with('success', 'Event request has been successfully submitted.');
-        }
+
     }
+
 
     public function addComment(Request $request, $id)
     {
@@ -511,6 +449,44 @@ class EventRequestController extends Controller
     {
 
 
+        dd($request->toArray());
+        $departmentIds = explode(',', trim($request->departments[0]));
+        $departmentIds = array_map('intval', array_map('trim', $departmentIds));
+
+        $departments = Department::whereIn('id', $departmentIds)->get();
+
+        $departmentsWithParent = DB::table('departments as t1')
+            ->leftJoin('departments as t2', 't1.parent_id', '=', 't2.id')
+            ->leftJoin('departments as t3', 't2.parent_id', '=', 't3.id')
+            ->leftJoin('departments as t4', 't3.parent_id', '=', 't4.id')
+            ->select(
+                't1.id as id',
+                't1.accronym as accronym',
+                't1.name as name',
+                DB::raw('COALESCE(t4.accronym, t3.accronym, t2.accronym, t1.accronym) as parent')
+            )
+            ->whereNotNull('t1.parent_id')
+            ->get();
+
+        $departmentsWithNoParent = DB::table('departments as t1')
+            ->leftJoin('departments as t2', 't1.id', '=', 't2.parent_id')
+            ->select(
+                't1.id as id',
+                't1.accronym as accronym',
+                't1.name as name',
+                't1.accronym as parent'
+            )
+            ->whereNull('t1.parent_id')
+            ->whereNull('t2.id')
+            ->get();
+
+        $departmentsForm = $departmentsWithNoParent->merge($departmentsWithParent)->filter(function ($item) use ($departments) {
+            return $departments->contains('id', $item->id);
+        })->values();
+
+        $departmentName = $departmentsForm->first()->parent;
+        $department = Department::where('accronym', $departmentName)->first();
+
 
         if ($request->activity_design) {
 
@@ -518,17 +494,13 @@ class EventRequestController extends Controller
                 'activity_design' => 'required|file|mimes:jpg,jpeg,png,docx,pdf|max:10240',
             ]);
 
-            // Handle the file upload
             $file = $request->file('activity_design');
             if ($file && $file->isValid()) {
                 $directory = 'files/uploads';
-
-                // Ensure the directory exists
-                if (! Storage::disk('public')->exists($directory)) {
+                if (!Storage::disk('public')->exists($directory)) {
                     Storage::disk('public')->makeDirectory($directory);
                 }
 
-                // Save the file
                 $filename = $file->getClientOriginalName();
                 $filePath = $file->storeAs($directory, $filename, 'public');
 
@@ -541,7 +513,9 @@ class EventRequestController extends Controller
                     'date' => $request->date_start,
                     'term_id' => $request->term_id,
                     'venue_id' => $request->venue_id,
+                    'department_id' => $department->id,
                     'user_id' => Auth::user()->id,
+                    'levels' => json_encode($request->event_levels),
 
                 ]);
 
@@ -550,9 +524,7 @@ class EventRequestController extends Controller
                     'date_end' => $request->date_end,
                     'time_start' => $request->time_start,
                     'time_end' => $request->time_end,
-                    'department_id' => $request->department_id,
                     'venue_id' => $request->venue_id,
-
                     'filename' => $filename,
                     'comment' => null,
 
@@ -591,14 +563,13 @@ class EventRequestController extends Controller
             }
         }
 
+
+
         $event2->update([
-            'date_end' => $request->date_end,
-            'time_start' => $request->time_start,
-            'time_end' => $request->time_end,
-            'levels' => $request->event_levels,
-            'department_id' => $request->department_id,
-            'venue_id' => $request->venue_id,
-            'user_id' => Auth::user()->id,
+            'date_end' => $request->event_date_end,
+            'time_start' => $request->event_time_start,
+            'time_end' => $request->event_time_end,
+            'venue_id' => $request->event_venue,
             'comment' => null,
 
         ]);
@@ -607,20 +578,14 @@ class EventRequestController extends Controller
 
         $event1->update([
             'name' => $request->event_name,
-            'date' => $request->date_start,
-
-            'term_id' => $request->term_id,
-            'time_start' => $request->time_start,
-            'time_end' => $request->time_end,
-            'department_id' => $request->department_id,
-            'venue_id' => $request->event_venue,
+            'date' => $request->event_date_start,
+            'levels' => $request->event_levels,
+            'term_id' => $request->event_term_id,
+            'department_id' => $department->id,
             'user_id' => Auth::user()->id,
 
 
         ]);
-
-        dd($event2->toArray());
-
 
 
         return redirect()->back()->with('success', 'Event successfully updated!');
@@ -630,9 +595,11 @@ class EventRequestController extends Controller
     public function delete_request($id)
     {
 
-        $event = Event::find($id);
+        $event1 = Event::find($id);
+        $event2 = EventJunction::where('event_id', $event1->id)->first();
 
-        $event->delete();
+        $event1->delete();
+        $event2->delete();
 
         return redirect()->back()->with('success', 'Event successfully deleted!');
     }

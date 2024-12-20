@@ -265,6 +265,7 @@ class PageController extends Controller
                     'events.date',
                     'event_junctions.date_end'
                 )
+                ->whereNotNull('event_junctions.approved_by_admin_at')
                 ->whereYear('events.date', $currentYear)
                 ->whereYear('event_junctions.date_end', $currentYear)
                 ->get();

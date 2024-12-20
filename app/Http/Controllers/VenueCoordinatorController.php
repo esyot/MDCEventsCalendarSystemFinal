@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
-use App\Models\UserRoles;
+use App\Models\UserRole;
 use App\Models\Venue;
 use App\Models\VenueCoordinator;
-use Auth;
-use DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -19,7 +19,7 @@ class VenueCoordinatorController extends Controller
         $user = Auth::user();
 
         $role = Role::where('role', 'venue_coordinator')->first();
-        $user_role_ids = UserRoles::where('role_id', $role->id)->pluck('user_id');
+        $user_role_ids = UserRole::where('role_id', $role->id)->pluck('user_id');
 
         $venueCoordinators = User::whereIn('id', $user_role_ids)->get();
 

@@ -91,23 +91,19 @@ const removeVenueConfirm = (id) => {
                                 >
                                     No
                                 </button>
-                                <a
-                                    :href="
-                                        '/venue-coordinators/' +
-                                        user_venue.id +
-                                        '/' +
-                                        venue.id
+                                <button
+                                    @click="
+                                        userVenueDelete(user_venue.id, venue.id)
                                     "
                                     class="px-4 py-2 bg-blue-500 text-blue-100 hover:opacity-50 rounded"
                                 >
                                     Yes
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </ul>
                 <form
-                    :action="'/venue-coordinator/venue-add/'"
                     @submit.prevent="submitForm"
                     enctype="multipart/form-data"
                 >
@@ -174,15 +170,13 @@ const removeVenueConfirm = (id) => {
                     <td
                         class="px-4 py-2 border-b text-sm text-gray-700 space-x-2"
                     >
-                        <a
-                            :href="
-                                '/venue-coordinators/ ' + venueCoordinator.id
-                            "
+                        <button
+                            @click="userVenue(venueCoordinator.id)"
                             class="text-blue-500 hover:opacity-50"
                             title="Preview"
                         >
                             <i class="fas fa-eye"></i>
-                        </a>
+                        </button>
                     </td>
                 </tr>
             </tbody>
@@ -191,17 +185,24 @@ const removeVenueConfirm = (id) => {
 </template>
 
 <script>
+import { router } from "@inertiajs/vue3";
+
 export default {
     data() {
         return {};
     },
     methods: {
+        userVenueDelete(userId, venueId) {
+            router.delete(`/venue-coordinators/${userId}/${venueId}`);
+        },
+        userVenue(userId) {
+            router.get(`/venue-coordinators/${userId}`);
+        },
         submitForm(event) {
+            event.preventDefault();
             const formData = new FormData(event.target);
 
-            Inertia.post("/venue-coordinator/venue-add", formData, {
-                preserveState: true,
-            });
+            router.post("/venue-coordinator/venue-add", formData);
         },
     },
 };

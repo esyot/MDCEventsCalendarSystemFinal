@@ -3,14 +3,10 @@
 namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Event;
-use App\Models\Role;
 use App\Models\Term;
-use App\Models\UserRoles;
 use Carbon\Carbon;
-use DB;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Permission;
-use App\Models\UserPermission;
+use Illuminate\Support\Facades\DB;
 use App\Models\Venue;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
@@ -19,7 +15,6 @@ class GuestCalendarController extends Controller
 {
     public function index(Request $request)
     {
-
         $venues = Venue::all();
 
         $eventsWithDetails = Event::

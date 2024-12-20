@@ -1,21 +1,17 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Event;
 use App\Models\Role;
-use App\Models\Venue;
 use App\Models\VenueCoordinator;
-use Auth;
-use DB;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class VenuesController extends Controller
 {
     public function index()
     {
-
         $venueIds = VenueCoordinator::where('user_id', Auth::user()->id)->get()->pluck('venue_id');
 
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
@@ -67,10 +63,10 @@ class VenuesController extends Controller
 
             $venuesRequested = Event::
                 join('terms', 'events.term_id', '=', 'terms.id')
-                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
-                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
-                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
-                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')
                 ->select(
                     'events.id as id',
                     'terms.name as term_name',

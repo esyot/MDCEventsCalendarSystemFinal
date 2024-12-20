@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\UserRoles;
+use App\Models\UserRole;
 use App\Models\UserDepartment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +15,9 @@ use Inertia\Inertia;
 class UserController extends Controller
 {
     public function index(Request $request)
-    {// Fetch users with roles and other details
+    {
+
+
         $users = User::select(
             'users.*',
             'roles.role as role_name',
@@ -24,39 +26,37 @@ class UserController extends Controller
         )
             ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
             ->join('roles', 'user_roles.role_id', '=', 'roles.id')
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['venue_coordinator', 'event_coordinator'])
             ->get();
 
-        // Fetch departments separately
+
+
         $departments = DB::table('user_departments')
             ->join('departments', 'user_departments.department_id', '=', 'departments.id')
             ->get(['user_departments.user_id', 'departments.id as department_id', 'departments.name as department_name']);
 
-        // Merge departments with users
+
         $users->each(function ($user) use ($departments) {
             $user->departments = $departments->where('user_id', $user->id)->values();
         });
-
 
 
         $allUsers = User::all();
 
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 
-
-        $roles = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->pluck('role')->toArray();
+        $roles = Role::whereIn('role', ['venue_coordinator', 'event_coordinator'])->pluck('role')->toArray();
 
         $departments = Department::all();
 
 
         $selectedUser = null;
         $selectedUserDepartments = null;
-        if ($request->user) {
-
+        if ($request->user != '') {
             $selectedUser = User::find($request->user);
 
             $departmentIds = UserDepartment::where('user_id', $selectedUser->id)->get()->pluck('department_id');
@@ -82,6 +82,7 @@ class UserController extends Controller
     public function search(Request $request)
     {
 
+
         if ($request->search_value == null) {
 
             return redirect()->route('users');
@@ -93,12 +94,14 @@ class UserController extends Controller
             ->orWhere('fname', 'LIKE', '%' . $request->search_value . '%')
             ->pluck('id')->unique();
 
-        $usersWithExcludedRoles = UserRoles::whereIn('role_id', [1, 19, 20, 21])
+        $roleIds = Role::whereIn('role', ['admin', 'venue_coordinator', 'event_coordinator'])->get()->pluck('id');
+
+        $usersWithExcludedRoles = UserRole::whereIn('role_id', $roleIds)
             ->whereIn('user_id', $userIds)
             ->pluck('user_id')->unique();
 
-        $usersWithRoles = UserRoles::whereIn('user_id', $userIds)
-            ->whereIn('role_id', [1, 19, 20, 21])
+        $usersWithRoles = UserRole::whereIn('user_id', $userIds)
+            ->whereIn('role_id', $roleIds)
             ->pluck('user_id')->unique();
 
         $allExcludedUserIds = $usersWithExcludedRoles->merge($usersWithRoles)->unique();
@@ -107,7 +110,7 @@ class UserController extends Controller
 
         $user_searched = User::whereIn('id', $userWithoutExcludedRoles)->get()->unique('id');
 
-        $roles = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->pluck('role')->toArray();
+        $roles = Role::whereIn('role', ['venue_coordinator', 'event_coordinator'])->pluck('role')->toArray();
 
 
         $users = User::select(
@@ -118,8 +121,9 @@ class UserController extends Controller
         )
             ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
             ->join('roles', 'user_roles.role_id', '=', 'roles.id')
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['venue_coordinator', 'event_coordinator'])
             ->get();
+
 
         // Fetch departments separately
         $departments = DB::table('user_departments')
@@ -137,11 +141,14 @@ class UserController extends Controller
 
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 
         $departments = Department::all();
+
+
+
 
         return Inertia::render('User/user', [
             'users' => $users->sortBy('lname')->values(),
@@ -158,40 +165,34 @@ class UserController extends Controller
 
     public function user_add_role(Request $request)
     {
+
         $validatedData = $request->validate([
-            'role' => 'required|in:admin,superadmin,event-coordinator,venue-coordinator,none',
+            'role' => 'required',
         ]);
 
         $user = User::find($request->id);
 
-        if (! $user) {
+        if (!$user) {
             return redirect()->back()->withErrors(['error' => 'User not found.']);
         }
 
-        $roleIds = [
-            'admin' => 1,
-            'superadmin' => 21,
-            'event-coordinator' => 20,
-            'venue-coordinator' => 19,
-            'none' => null,
-        ];
+        $role = $validatedData['role'];
 
-        $newRoleId = $roleIds[$validatedData['role']];
+        $newRoleId = Role::where('role', $role)->pluck('id')->first();
 
+        $roleIds = Role::whereIn('role', ['event_coordinator', 'venue_coordinator'])->pluck('id');
 
-        $currentUserRole = UserRoles::where('user_id', $user->id)->first();
+        $currentUserRole = UserRole::where('user_id', $user->id)
+            ->whereIn('role_id', $roleIds)
+            ->first();
 
-        if ($currentUserRole) {
-            if ($newRoleId === null || $currentUserRole->role_id !== $newRoleId) {
-                UserRoles::where('user_id', $user->id)->delete();
-            }
-        }
+        if ($currentUserRole == null) {
+            UserRole::Create(
+                [
+                    'user_id' => $user->id,
+                    'role_id' => $newRoleId
 
-
-        if ($newRoleId !== null) {
-            UserRoles::updateOrCreate(
-                ['user_id' => $user->id],
-                ['role_id' => $newRoleId]
+                ],
             );
 
             UserDepartment::updateOrCreate(
@@ -206,10 +207,13 @@ class UserController extends Controller
 
     public function user_role_update(Request $request)
     {
+
         $role = Role::where('role', $request->role)->first();
 
-        UserRoles::where('user_id', $request->user)
-            ->whereIn('role_id', [1, 19, 20, 21])
+        $roleIdsAllowed = Role::whereIn('role', ['event_coordinator', 'venue_coordinator'])->pluck('id');
+
+        UserRole::where('user_id', $request->user)
+            ->whereIn('role_id', $roleIdsAllowed)
             ->update([
                 'role_id' => $role->id,
             ]);
@@ -220,7 +224,7 @@ class UserController extends Controller
 
     public function user_delete_role($id)
     {
-        UserRoles::where('user_id', $id)->delete();
+        UserRole::where('user_id', $id)->delete();
         return redirect()->back()->with('success', 'User role has been deleted successfully');
     }
 

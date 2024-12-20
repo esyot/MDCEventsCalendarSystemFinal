@@ -273,6 +273,7 @@ const toggleDropdown = () => {
                                         class="hover:opacity-50"
                                         onclick="document.getElementById('logout-confirm').classList.toggle('hidden');"
                                     >
+                                        <i class="fas fa-sign-out"></i>
                                         Log out
                                     </button>
                                 </div>
@@ -286,13 +287,11 @@ const toggleDropdown = () => {
                 id="logout-confirm"
                 class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 z-50 hidden"
             >
-                <div class="bg-white rounded shadow-md p-2">
+                <div class="bg-white rounded shadow-md p-4">
                     <header>
-                        <h1 class="text-xl font-medium">
-                            Are you sure to Log out?
-                        </h1>
+                        <h1 class="text-xl">Are you sure to Log out?</h1>
                     </header>
-                    <footer class="flex justify-end space-x-1 p-1">
+                    <footer class="flex mt-4 justify-end space-x-1 p-1">
                         <button
                             type="button"
                             onclick="document.getElementById('logout-confirm').classList.toggle('hidden');"

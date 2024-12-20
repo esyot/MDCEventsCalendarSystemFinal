@@ -16,9 +16,13 @@ use App\Http\Middleware\CheckUserRole;
 
 
 Route::get('/login', function () {
-    return redirect()->route('guest')->with([
-        'errors', session('errors') ? session('errors')->getBag('default')->getMessages() : [],
-        'auth_error', session('auth_error') ?? false]
+    return redirect()->route('guest')->with(
+        [
+            'errors',
+            session('errors') ? session('errors')->getBag('default')->getMessages() : [],
+            'auth_error',
+            session('auth_error') ?? false
+        ]
     );
 });
 
@@ -57,28 +61,28 @@ Route::get('/unauthorized', function () {
 Route::middleware([CheckUserRole::class . ':super_admin,admin'])->group(function () {
 
     //users
-    Route::get('/users/user-remove-department/{user}/{department}', [UserController::class, 'userDepartmentRemove']);
+    Route::delete('/users/user-remove-department/{user}/{department}', [UserController::class, 'userDepartmentRemove']);
     Route::get('/users/user-add-department', [UserController::class, 'userDepartmentAdd']);
 
     Route::get('/users', [UserController::class, 'index'])->name('users');
     Route::get('/users/{user}', [UserController::class, 'index']);
-    Route::get('/user-search', [UserController::class, 'search']);
-    Route::get('/user-add-role', [UserController::class, 'user_add_role']);
-    Route::get('/user-delete-role/{id}', [UserController::class, 'user_delete_role']);
-    Route::get('/user-role-update', [UserController::class, 'user_role_update']);
+    Route::post('/users', [UserController::class, 'search']);
+    Route::post('/user-add-role', [UserController::class, 'user_add_role']);
+    Route::delete('/user-delete-role/{id}', [UserController::class, 'user_delete_role']);
+    Route::post('/user-role-update', [UserController::class, 'user_role_update']);
 
     // Venue Coordinator Routes
     Route::get('/venue-coordinators', [VenueCoordinatorController::class, 'index']);
     Route::get('/venue-coordinators/{user_id}', [VenueCoordinatorController::class, 'fetchUserVenue'])->name('venue-coordinator');
-    Route::get('/venue-coordinators/{user_id}/{venue_id}', [VenueCoordinatorController::class, 'remove']);
+    Route::delete('/venue-coordinators/{user_id}/{venue_id}', [VenueCoordinatorController::class, 'remove']);
     Route::post('/venue-coordinator/venue-add/', [VenueCoordinatorController::class, 'venueAdd']);
 });
 
 Route::middleware([CheckUserRole::class . ':super_admin,admin,event_coordinator'])->group(function () {
 
-    Route::post('/admin/event-create', [EventRequestController::class, 'create_request']);
+    Route::post('/admin/event-create', [EventRequestController::class, 'create_request'])->name('event.create');
     Route::post('/admin/event-update', [EventRequestController::class, 'update_request']);
-    Route::get('/admin/event-delete/{id}', [EventRequestController::class, 'delete_request']);
+    Route::delete('/admin/event-delete/{id}', [EventRequestController::class, 'delete_request']);
 
 
 });

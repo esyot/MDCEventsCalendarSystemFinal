@@ -309,7 +309,6 @@ class CalendarController extends Controller
         $departmentId = $request->department;
         $venueId = $request->venue;
 
-        // Fetch basic data
         $venues = Venue::all();
         $terms = Term::all();
         $departments = Department::all();
@@ -364,7 +363,7 @@ class CalendarController extends Controller
             ->whereYear('events.date', $currentYear)
             ->get();
 
-        // Base event query
+
         $eventQuery = Event::join('terms', 'events.term_id', '=', 'terms.id')
             ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')
             ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')
@@ -406,12 +405,44 @@ class CalendarController extends Controller
             ->where('events.name', 'LIKE', '%' . $searchValue . '%')
             ->whereYear('events.date', $currentYear);
 
-        // Filter by department if provided
-        if ($departmentId) {
+
+        if ($departmentId && $departmentId != 'all') {
             $eventQuery->where('departments.id', $departmentId);
         }
 
-        // Additional filter for user roles (event or venue coordinator)
+        if ($userRole == 'admin') {
+
+            if ($venueId && $venueId != 'all') {
+                $eventQuery->where('event_junctions.venue_id', $venueId);
+            }
+
+        } elseif ($userRole == 'venue_coordinator') {
+
+            $venueIds = VenueCoordinator::where('user_id', Auth::user()->id)->get()->pluck('venue_id');
+
+            $venues = Venue::whereIn('id', $venueIds)->get();
+
+            if ($venueId && $venueId != 'all') {
+                $eventQuery->where('event_junctions.venue_id', $venueId)
+                    ->whereIn('event_junctions.venue_id', $venueIds)
+                ;
+            }
+
+        } elseif ($userRole == 'event_coordinator') {
+
+            $userDeparmentIds = UserDepartment::where('user_id', Auth::user())->get()->pluck('department_id');
+
+            $departmentAcronyms = Department::whereIn('id', $userDeparmentIds)->get()->pluck('accronym');
+
+
+            if ($venueId && $venueId != 'all') {
+                $eventQuery->where('event_junctions.venue_id', $venueId)
+                    ->whereLike
+                ;
+            }
+
+        }
+
         if (in_array($userRole, ['event_coordinator', 'venue_coordinator'])) {
             $departmentIds = UserDepartment::where('user_id', Auth::user()->id)->pluck('department_id');
             $eventQuery->whereIn('departments.id', $departmentIds);
@@ -419,11 +450,10 @@ class CalendarController extends Controller
 
         $events = $eventQuery->get();
 
-        // Determine current department and venue
+
         $currentDepartment = $departmentId != 'all' ? Department::find($departmentId) : ['id' => 'all', 'name' => 'All'];
         $currentVenue = $venueId != 'all' ? Venue::find($venueId) : ['id' => 'all', 'name' => 'All'];
 
-        // Fetch event details with department and venue info for the calendar view
         $eventsWithDetails = Event::join('terms', 'events.term_id', '=', 'terms.id')
             ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')
             ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')
@@ -471,7 +501,44 @@ class CalendarController extends Controller
             $eventsWithDetails->where('department_id', 'LIKE', '%' . $request->department . '%');
         }
 
+        if ($request->venue && $request->venue != 'all') {
+
+            $eventsWithDetails->where('event_junctions.venue_id', $request->venue);
+        }
+
+        $departmentsWithParent = DB::table('departments as t1')
+            ->leftJoin('departments as t2', 't1.parent_id', '=', 't2.id')
+            ->leftJoin('departments as t3', 't2.parent_id', '=', 't3.id')
+            ->leftJoin('departments as t4', 't3.parent_id', '=', 't4.id')
+            ->select(
+                't1.id as department_id',
+                't1.accronym as acronym',
+                't1.name as department_name',
+                DB::raw('COALESCE(t4.accronym, t3.accronym, t2.accronym, t1.accronym) as parent')
+
+            )
+            ->whereNotNull('t1.parent_id')
+            ->get();
+
+        $departmentsWithNoParent = DB::table('departments as t1')
+            ->leftJoin('departments as t2', 't1.id', '=', 't2.parent_id')
+            ->select(
+                't1.id as department_id',
+                't1.accronym as acronym',
+                't1.name as department_name',
+                't1.accronym as parent',
+            )
+            ->whereNull('t1.parent_id')
+            ->whereNull('t2.id')
+            ->get();
+
+
+
+        $departmentsForm = $departmentsWithNoParent->concat($departmentsWithParent);
+
+
         return Inertia::render('Calendar/calendar', [
+            'departmentsForm' => $departmentsForm,
             'departments' => $departments,
             'venues' => $venues,
             'pageTitle' => 'Calendar',
