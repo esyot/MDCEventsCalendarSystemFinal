@@ -28,9 +28,64 @@ const venueApproveConfirm = (id) => {
         .getElementById("venue-approve-confirm-" + id)
         .classList.toggle("hidden");
 };
+
+const closeSuccessMessage = () => {
+    document.getElementById("successMessage").classList.toggle("hidden");
+};
+
+const closeErrorMessage = () => {
+    document.getElementById("errorMessage").classList.toggle("hidden");
+};
 </script>
 
 <template>
+    <div
+        v-if="successMessage != null"
+        id="successMessage"
+        class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 z-50"
+    >
+        <div class="bg-white p-2 shadow-md rounded">
+            <div class="flex flex-col items-center">
+                <div class="p-2">
+                    <i class="fas fa-circle-check text-green-500 fa-2xl"></i>
+                </div>
+                <div>{{ successMessage }}</div>
+
+                <div>
+                    <button
+                        @click="closeSuccessMessage()"
+                        class="px-4 py-2 border text-gray-800 border-gray-300 rounded hover:opacity-50"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div
+        v-if="errorMessage != null"
+        id="errorMessage"
+        class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 z-50"
+    >
+        <div class="bg-white p-2 shadow-md rounded">
+            <div class="flex flex-col items-center">
+                <div class="p-2">
+                    <i class="fas fa-times-circle text-red-500 fa-2xl"></i>
+                </div>
+                <div>{{ errorMessage }}</div>
+
+                <div>
+                    <button
+                        @click="closeErrorMessage()"
+                        class="px-4 py-2 border text-gray-800 border-gray-300 rounded hover:opacity-50"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="overflow-x-auto mx-4 shadow-lg shadow-gray-300">
         <div class="h-[600px] overflow-y-auto mt-4">
             <table class="min-w-full bg-white border border-gray-300">
@@ -177,6 +232,7 @@ const venueApproveConfirm = (id) => {
                 >
                     <form
                         @submit.prevent="submitForm"
+                        method="POST"
                         enctype="multipart/form-data"
                         class="bg-white p-2 w-[500px] shadow-md rounded"
                     >
@@ -1046,6 +1102,8 @@ export default {
         };
     },
     props: {
+        successMessage: String,
+        errorMessage: String,
         events: {
             type: Object,
         },
@@ -1503,9 +1561,7 @@ export default {
         submitForm(event) {
             const formData = new FormData(event.target);
 
-            Inertia.post("/admin/event-update", formData, {
-                preserveState: true,
-            });
+            router.post("/admin/event-update", formData);
         },
         eventDeleteConfirm(eventId) {
             router.delete(`/admin/event-delete/${eventId}`);

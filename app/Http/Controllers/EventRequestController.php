@@ -251,7 +251,9 @@ class EventRequestController extends Controller
             'user_role' => $user_role,
             'venues' => $venues,
             'departments' => $departments,
-            'terms' => $terms
+            'terms' => $terms,
+            'successMessage' => session('success') ?? null,
+            'errorMessage' => session('error') ?? null,
         ]);
     }
 
@@ -447,9 +449,6 @@ class EventRequestController extends Controller
 
     public function update_request(Request $request)
     {
-
-
-        dd($request->toArray());
         $departmentIds = explode(',', trim($request->departments[0]));
         $departmentIds = array_map('intval', array_map('trim', $departmentIds));
 
@@ -587,8 +586,16 @@ class EventRequestController extends Controller
 
         ]);
 
+        if ($event1 && $event2) {
+            session()->flash('success', 'Event has been successfully updated!');
 
-        return redirect()->back()->with('success', 'Event successfully updated!');
+            return Inertia::location(route('eventRequest'));
+        } else {
+            session()->flash('error', 'Event update error!');
+
+            return Inertia::location(route('eventRequest'));
+        }
+
 
     }
 
