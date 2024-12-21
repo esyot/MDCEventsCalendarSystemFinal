@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\Event;
-use DB;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class PDFController extends Controller
@@ -22,7 +21,8 @@ class PDFController extends Controller
                     $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
                 })
                 ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
+                ->select(
+                    'events.*',
                     'venues.name as venue_name',
                     'events.id as event_id',
                     'events.name as event_name',
@@ -33,24 +33,17 @@ class PDFController extends Controller
                     'terms.name as term_name',
                 )
                 ->where('department_id', 'LIKE', '%' . '[' . $id . ']' . '%')
-                ->whereNot('isApprovedByAdmin', null)
+                ->whereNotNull('event_junctions.approved_by_admin_at')
                 ->groupBy('events.id', 'venues.name', 'venues.building', 'terms.name')
                 ->orderBy('date_start', 'ASC')
                 ->get();
-
-
 
 
             if (count($events) == 0) {
                 return redirect()->route('calendar')->with('error', 'No events found!');
             }
 
-
-
             $title = 'Events in ' . $department->name . ' in year ' . $currentYear;
-
-
-
 
             $pdf = PDF::loadView('export-pdf.events', compact([
                 'events',
@@ -99,6 +92,7 @@ class PDFController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
+                ->whereNotNull('approved_by_admin_at')
                 ->get();
 
 
@@ -129,7 +123,8 @@ class PDFController extends Controller
                     $join->on(DB::raw('JSON_CONTAINS(events.department_id, CAST(departments.id AS JSON))'), '=', DB::raw('1'));
                 })
                 ->join('terms', 'events.term_id', '=', 'terms.id')
-                ->select('events.*',
+                ->select(
+                    'events.*',
                     'venues.name as venue_name',
                     'events.id as event_id',
                     'events.name as event_name',
@@ -201,6 +196,7 @@ class PDFController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
+                ->whereNotNull('approved_by_admin_at')
                 ->get();
 
 

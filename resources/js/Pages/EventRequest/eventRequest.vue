@@ -271,9 +271,11 @@ const closeErrorMessage = () => {
 
                                 <select
                                     name="event_venue"
-                                    :value="event.venue_id"
                                     class="block p-2.5 border border-gray-300 w-full rounded"
                                     required
+                                    :disabled="
+                                        event.approved_by_venue_coordinator_at
+                                    "
                                     @change="
                                         onVenueChange(
                                             selectedDateForm,
@@ -282,7 +284,9 @@ const closeErrorMessage = () => {
                                         )
                                     "
                                 >
-                                    <option value=""></option>
+                                    <option :value="event.venue_id">
+                                        {{ event.venue_name }}
+                                    </option>
                                     <option
                                         v-for="venue in venues"
                                         :key="venue"
@@ -308,7 +312,9 @@ const closeErrorMessage = () => {
                                             )
                                         "
                                         class="block p-2 border border-gray-300 w-full rounded"
-                                        required
+                                        :disabled="
+                                            event.approved_by_venue_coordinator_at
+                                        "
                                     />
                                 </div>
 
@@ -326,7 +332,9 @@ const closeErrorMessage = () => {
                                             )
                                         "
                                         class="block p-2 border border-gray-300 w-full rounded"
-                                        required
+                                        :disabled="
+                                            event.approved_by_venue_coordinator_at
+                                        "
                                     />
                                 </div>
                             </div>
@@ -360,7 +368,9 @@ const closeErrorMessage = () => {
                                                     $event.target.value
                                                 )
                                             "
-                                            required
+                                            :disabled="
+                                                event.approved_by_venue_coordinator_at
+                                            "
                                         >
                                             <option>AM</option>
                                             <option>PM</option>
@@ -375,7 +385,9 @@ const closeErrorMessage = () => {
                                                     $event.target.value
                                                 )
                                             "
-                                            required
+                                            :disabled="
+                                                event.approved_by_venue_coordinator_at
+                                            "
                                         >
                                             <option
                                                 v-for="hour in hours"
@@ -401,7 +413,9 @@ const closeErrorMessage = () => {
                                                     $event.target.value
                                                 )
                                             "
-                                            required
+                                            :disabled="
+                                                event.approved_by_venue_coordinator_at
+                                            "
                                         >
                                             <option
                                                 v-for="minute in minutes"
@@ -437,7 +451,9 @@ const closeErrorMessage = () => {
                                                     $event.target.value
                                                 )
                                             "
-                                            required
+                                            :disabled="
+                                                event.approved_by_venue_coordinator_at
+                                            "
                                         >
                                             <option></option>
                                             <option>AM</option>
@@ -453,7 +469,9 @@ const closeErrorMessage = () => {
                                                     $event.target.value
                                                 )
                                             "
-                                            required
+                                            :disabled="
+                                                event.approved_by_venue_coordinator_at
+                                            "
                                         >
                                             <option
                                                 v-for="hour in hours"
@@ -464,7 +482,6 @@ const closeErrorMessage = () => {
                                                         selectedAMPMEnd
                                                     )
                                                 "
-                                                required
                                             >
                                                 {{ hour }}
                                             </option>
@@ -479,7 +496,9 @@ const closeErrorMessage = () => {
                                                     $event.target.value
                                                 )
                                             "
-                                            required
+                                            :disabled="
+                                                event.approved_by_venue_coordinator_at
+                                            "
                                         >
                                             <option
                                                 v-for="minute in minutes"
@@ -685,8 +704,8 @@ const closeErrorMessage = () => {
                         </div>
 
                         <div class="flex justify-between p-2">
-                            <h1 class="font-medium">Level:</h1>
-                            <span>{{ event.levels }} </span>
+                            <h1 class="font-medium">Levels:</h1>
+                            <span>{{ translatedLevels(event.levels) }} </span>
                         </div>
 
                         <div class="flex justify-between p-2">
@@ -704,17 +723,20 @@ const closeErrorMessage = () => {
                             </div>
                         </div>
 
-                        <div class="flex justify-between p-2">
+                        <div
+                            v-if="user_role == 'admin'"
+                            class="flex justify-between p-2"
+                        >
                             <h1 class="font-medium">Activity Design:</h1>
                             <a
                                 title="Click to view"
                                 :href="
                                     '/admin/view-activity-design/' +
-                                    event.activity_design_file_name
+                                    event.filename
                                 "
                                 class="px-4 py-2 border border-gray-300 hover:opacity-50 rounded"
                             >
-                                {{ event.activity_design_file_name }}
+                                {{ event.filename }}
                             </a>
                         </div>
                         <div class="p-2">
@@ -782,7 +804,7 @@ const closeErrorMessage = () => {
                             "
                             class="p-2"
                         >
-                            <h1 class="font-medium">Comment:</h1>
+                            <h1 class="font-medium">Comments:</h1>
                             <div class="flex items-start space-x-2">
                                 <textarea
                                     height="2"
@@ -1099,6 +1121,38 @@ export default {
             departmentSelected: "",
 
             departmentsChecked: [],
+
+            GS: [
+                { label: "Masters 2", value: "m2" },
+                { label: "Masters 1", value: "m1" },
+                { label: "Doctors 2", value: "d2" },
+                { label: "Doctors 1", value: "d1" },
+            ],
+            College: [
+                { label: "Qualifying", value: "cQ" },
+                { label: "4th yrs", value: "c4" },
+                { label: "3rd yrs", value: "c3" },
+                { label: "2nd yrs", value: "c2" },
+                { label: "1st yrs", value: "c1" },
+            ],
+            HS: [
+                { label: "K-11", value: "g12" },
+                { label: "K-12", value: "g11" },
+                { label: "10th grade", value: "g10" },
+                { label: "9th grade", value: "g9" },
+                { label: "8th grade", value: "g8" },
+                { label: "7th grade", value: "g7" },
+            ],
+            ELEM: [
+                { label: "6th grade", value: "g6" },
+                { label: "5th grade", value: "g5" },
+                { label: "4th grade", value: "g4" },
+                { label: "3rd grade", value: "g3" },
+                { label: "2nd grade", value: "g2" },
+                { label: "1st grade", value: "g1" },
+                { label: "Kinder 1", value: "k2" },
+                { label: "Kinder 2", value: "k1" },
+            ],
         };
     },
     props: {
@@ -1118,6 +1172,38 @@ export default {
         departmentsForm: {},
     },
     methods: {
+        translatedLevels(levels) {
+            if (!levels) return ""; // If levels is undefined or null, return empty string
+
+            try {
+                // Parse the string into an actual array
+                const levelArray = JSON.parse(levels);
+
+                // Check if it's a valid array
+                if (Array.isArray(levelArray)) {
+                    const allCategories = [
+                        ...this.GS,
+                        ...this.College,
+                        ...this.HS,
+                        ...this.ELEM,
+                    ];
+
+                    // Map over each value to find its corresponding label
+                    return levelArray
+                        .map((value) => {
+                            const found = allCategories.find(
+                                (item) => item.value === value.trim()
+                            );
+                            return found ? found.label : value.trim();
+                        })
+                        .join(", ");
+                }
+            } catch (error) {
+                console.error("Invalid levels format:", error);
+                return "";
+            }
+            return "";
+        },
         updateSelectedDepartments(event, departmentId) {
             if (!Array.isArray(this.selectedDepartments)) {
                 this.selectedDepartments = [];
@@ -1564,7 +1650,7 @@ export default {
             router.post("/admin/event-update", formData);
         },
         eventDeleteConfirm(eventId) {
-            router.delete(`/admin/event-delete/${eventId}`);
+            Inertia.delete(`/admin/event-delete/${eventId}`);
         },
     },
 };

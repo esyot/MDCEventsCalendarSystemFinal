@@ -56,7 +56,7 @@ class GuestCalendarController extends Controller
 
         $terms = Term::all();
 
-        $departments = Department::all();
+        $departments = Department::whereNotIn('accronym', ['SHS', 'College', 'ELEM', 'GS'])->get();
 
         $currentDepartment = ['id' => 'all', 'name' => 'All'];
 
@@ -94,12 +94,16 @@ class GuestCalendarController extends Controller
     public function filter(Request $request)
     {
         $user = Auth::user();
-        $currentYear = now()->format('Y');
+        $currentYear = $request->currentYear;
+        $searchValue = $request->search_value;
+        $departmentId = $request->department;
+        $venueId = $request->venue;
 
-        // Fetch the required data
         $venues = Venue::all();
         $terms = Term::all();
-        $departments = Department::all();
+        $departments = Department::whereNotIn('accronym', ['SHS', 'College', 'ELEM', 'GS'])->get();
+
+
 
         // Default search results based on event name and year
         $searchResults = Event::join('terms', 'events.term_id', '=', 'terms.id')
@@ -118,6 +122,8 @@ class GuestCalendarController extends Controller
                 'event_junctions.time_start as time_start',
                 'event_junctions.date_end as date_end',
                 'event_junctions.time_end as time_end',
+                'event_junctions.approved_by_admin_at as approved_by_admin_at',
+                'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
                 'event_junctions.updated_at as updated_at',
                 DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
                 DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
@@ -133,48 +139,17 @@ class GuestCalendarController extends Controller
                 'event_junctions.time_end',
                 'event_junctions.time_start',
                 'event_junctions.date_end',
+                'event_junctions.approved_by_admin_at',
+                'event_junctions.approved_by_venue_coordinator_at',
                 'event_junctions.updated_at'
             )
             ->whereNotNull('event_junctions.approved_by_admin_at')
-            ->where('events.name', 'LIKE', '%' . $request->search_value . '%')
+            ->where('events.name', 'LIKE', '%' . $searchValue . '%')
             ->whereYear('events.date', $currentYear)
             ->get();
 
-        // Default event query for calendar
-        $eventsQuery = Event::join('terms', 'events.term_id', '=', 'terms.id')
-            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')
-            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')
-            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')
-            ->join('departments', 'event_departments.department_id', '=', 'departments.id')
-            ->select(
-                'events.date as date_start',
-                'event_junctions.date_end as date_end'
-            )
-            ->groupBy(
-                'events.date',
-                'event_junctions.date_end'
-            )
-            ->whereNotNull('event_junctions.approved_by_admin_at')
-            ->whereYear('events.date', $currentYear);
 
-        // Apply department filter if provided
-        if ($request->department && $request->department !== 'all') {
-            $eventsQuery->where('events.department_id', 'LIKE', '%' . $request->department . '%');
-        }
-
-        // Apply search filter if provided
-        if ($request->search_value) {
-            $eventsQuery->where('events.name', 'LIKE', '%' . $request->search_value . '%');
-        }
-
-        $events = $eventsQuery->get();
-
-        // Determine current department and venue
-        $currentDepartment = $request->department != 'all' ? Department::find($request->department) : ['id' => 'all', 'name' => 'All'];
-        $currentVenue = $request->venue != 'all' ? Venue::find($request->venue) : ['id' => 'all', 'name' => 'All'];
-
-        // Fetch events with details
-        $eventsWithDetails = Event::join('terms', 'events.term_id', '=', 'terms.id')
+        $eventQuery = Event::join('terms', 'events.term_id', '=', 'terms.id')
             ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')
             ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')
             ->join('event_departments', 'events.id', '=', 'event_departments.event_id')
@@ -190,6 +165,8 @@ class GuestCalendarController extends Controller
                 'event_junctions.time_start as time_start',
                 'event_junctions.date_end as date_end',
                 'event_junctions.time_end as time_end',
+                'event_junctions.approved_by_admin_at as approved_by_admin_at',
+                'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
                 'event_junctions.updated_at as updated_at',
                 DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
                 DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
@@ -205,13 +182,72 @@ class GuestCalendarController extends Controller
                 'event_junctions.time_end',
                 'event_junctions.time_start',
                 'event_junctions.date_end',
+                'event_junctions.approved_by_admin_at',
+                'event_junctions.approved_by_venue_coordinator_at',
                 'event_junctions.updated_at'
             )
-            ->whereNotNull('event_junctions.approved_by_admin_at')->get();
+            ->whereNotNull('event_junctions.approved_by_admin_at')
+            ->whereYear('events.date', $currentYear);
 
-        if ($request->department && $request->department !== 'all') {
-            $eventsWithDetails->where('departments.department_id', 'LIKE', '%' . $request->department . '%');
+        $selectedDepartment = Department::find($request->department);
+
+        if ($departmentId && $departmentId != 'all') {
+
+            $eventQuery->havingRaw('department_acronyms LIKE ?', ['%' . $selectedDepartment->accronym . '%']);
         }
+
+        $events = $eventQuery->get();
+
+
+        $currentDepartment = $departmentId != 'all' ? Department::find($departmentId) : ['id' => 'all', 'name' => 'All'];
+        $currentVenue = $venueId != 'all' ? Venue::find($venueId) : ['id' => 'all', 'name' => 'All'];
+
+        $eventsWithDetails = Event::join('terms', 'events.term_id', '=', 'terms.id')
+            ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')
+            ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')
+            ->join('event_departments', 'events.id', '=', 'event_departments.event_id')
+            ->join('departments', 'event_departments.department_id', '=', 'departments.id')
+            ->select(
+                'events.id as id',
+                'terms.name as term_name',
+                'events.name as name',
+                'events.levels as levels',
+                'venues.name as venue_name',
+                'venues.id as venue_id',
+                'venues.building as venue_building',
+                'events.date as date_start',
+                'event_junctions.time_start as time_start',
+                'event_junctions.date_end as date_end',
+                'event_junctions.time_end as time_end',
+                'event_junctions.approved_by_admin_at as approved_by_admin_at',
+                'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
+                'event_junctions.updated_at as updated_at',
+                DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
+                DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
+            )
+            ->groupBy(
+                'events.id',
+                'terms.name',
+                'events.name',
+                'events.levels',
+                'events.date',
+                'venues.id',
+                'venues.name',
+                'venues.building',
+                'event_junctions.time_end',
+                'event_junctions.time_start',
+                'event_junctions.date_end',
+                'event_junctions.approved_by_admin_at',
+                'event_junctions.approved_by_venue_coordinator_at',
+                'event_junctions.updated_at'
+            )
+            ->whereYear('events.date', $currentYear)
+            ->whereYear('event_junctions.date_end', $currentYear)
+            ->get();
+
+
+
+
 
 
         return Inertia::render('Guest/Calendar/calendar', [

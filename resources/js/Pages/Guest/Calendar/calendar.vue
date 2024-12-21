@@ -64,10 +64,30 @@ const updateCalendarDataForYear = () => {
 };
 
 const changeYear = (direction) => {
-    if (direction === "previous" && currentYear.value > 2020) {
+    if (direction === "prev" && currentYear.value > 2020) {
         currentYear.value--;
     } else if (direction === "next" && currentYear.value < 2030) {
         currentYear.value++;
+    }
+    updateCalendarDataForYear();
+};
+
+const changeMonthYear = (direction) => {
+    if (direction === "prev" && currentYear.value != 2020) {
+        selectedMonth.value = 11;
+        currentYear.value--;
+    } else if (direction === "next" && currentYear.value != 2030) {
+        selectedMonth.value = 0;
+        currentYear.value++;
+    }
+    updateCalendarDataForYear();
+};
+
+const changeMonth = (direction) => {
+    if (direction === "prev") {
+        selectedMonth.value--;
+    } else if (direction === "next") {
+        selectedMonth.value++;
     }
     updateCalendarDataForYear();
 };
@@ -575,7 +595,16 @@ const openSingleSearchedEvent = (id) => {
                     <div
                         class="w-full flex justify-between px-4 items-center border-b"
                     >
-                        <button @click="changeYear('previous')" class="">
+                        <button
+                            @click="
+                                selectedMonth != null
+                                    ? selectedMonth >= 1
+                                        ? changeMonth('prev')
+                                        : changeMonthYear('prev')
+                                    : changeYear('prev')
+                            "
+                            class=""
+                        >
                             <i
                                 class="fas fa-chevron-circle-left text-blue-500 fa-xl hover:opacity-50"
                             ></i>
@@ -596,7 +625,16 @@ const openSingleSearchedEvent = (id) => {
                                 {{ year }}
                             </option>
                         </select>
-                        <button @click="changeYear('next')" class="">
+                        <button
+                            @click="
+                                selectedMonth != null
+                                    ? selectedMonth >= 0 && selectedMonth <= 10
+                                        ? changeMonth('next')
+                                        : changeMonthYear('next')
+                                    : changeYear('next')
+                            "
+                            class=""
+                        >
                             <i
                                 class="fas fa-chevron-circle-right text-blue-500 fa-xl hover:opacity-50"
                             ></i>
@@ -880,6 +918,38 @@ export default {
             errors: "",
             pageTitle: "",
             user: [],
+
+            GS: [
+                { label: "Masters 2", value: "m2" },
+                { label: "Masters 1", value: "m1" },
+                { label: "Doctors 2", value: "d2" },
+                { label: "Doctors 1", value: "d1" },
+            ],
+            College: [
+                { label: "Qualifying", value: "cQ" },
+                { label: "4th yrs", value: "c4" },
+                { label: "3rd yrs", value: "c3" },
+                { label: "2nd yrs", value: "c2" },
+                { label: "1st yrs", value: "c1" },
+            ],
+            HS: [
+                { label: "K-11", value: "g12" },
+                { label: "K-12", value: "g11" },
+                { label: "10th grade", value: "g10" },
+                { label: "9th grade", value: "g9" },
+                { label: "8th grade", value: "g8" },
+                { label: "7th grade", value: "g7" },
+            ],
+            ELEM: [
+                { label: "6th grade", value: "g6" },
+                { label: "5th grade", value: "g5" },
+                { label: "4th grade", value: "g4" },
+                { label: "3rd grade", value: "g3" },
+                { label: "2nd grade", value: "g2" },
+                { label: "1st grade", value: "g1" },
+                { label: "Kinder 1", value: "k2" },
+                { label: "Kinder 2", value: "k1" },
+            ],
         };
     },
     props: {
@@ -923,8 +993,37 @@ export default {
         selectedDate: {},
     },
     methods: {
-        formatText(text) {
-            return text.replace(/[\[\]\""]/g, "").replace(/,/g, ", ");
+        formatText(levels) {
+            if (!levels) return ""; // If levels is undefined or null, return empty string
+
+            try {
+                // Parse the string into an actual array
+                const levelArray = JSON.parse(levels);
+
+                // Check if it's a valid array
+                if (Array.isArray(levelArray)) {
+                    const allCategories = [
+                        ...this.GS,
+                        ...this.College,
+                        ...this.HS,
+                        ...this.ELEM,
+                    ];
+
+                    // Map over each value to find its corresponding label
+                    return levelArray
+                        .map((value) => {
+                            const found = allCategories.find(
+                                (item) => item.value === value.trim()
+                            );
+                            return found ? found.label : value.trim();
+                        })
+                        .join(", ");
+                }
+            } catch (error) {
+                console.error("Invalid levels format:", error);
+                return "";
+            }
+            return "";
         },
         departmentColor(deptIds) {
             let deptIdString = deptIds.replace(/[\[\]\""\,\s+]/g, "");

@@ -37,7 +37,7 @@ class CalendarController extends Controller
             ->first();
 
 
-        $departments = Department::all();
+        $departments = Department::whereNotIn('accronym', ['SHS', 'College', 'ELEM', 'GS'])->get();
 
         $departmentsWithParent = DB::table('departments as t1')
             ->leftJoin('departments as t2', 't1.parent_id', '=', 't2.id')
@@ -71,11 +71,24 @@ class CalendarController extends Controller
 
 
         if ($user_role == 'event_coordinator') {
+            // Get the department IDs associated with the logged-in user
+            $userDeparmentIds = UserDepartment::where('user_id', Auth::user()->id)->get()->pluck('department_id');
+
+            // Get the department acronyms based on the user's departments
+            $departmentAcronyms = Department::whereIn('id', $userDeparmentIds)->get()->pluck('accronym')->toArray();
+
+            $departmentsForm = $departmentsForm->filter(function ($department) use ($departmentAcronyms) {
+                return in_array($department->acronym, $departmentAcronyms);
+            });
+        }
+
+
+        if ($user_role == 'event_coordinator') {
             $deparmentIds = UserDepartment::where('user_id', Auth::user()->id)->get()->pluck('department_id');
 
             $departments = Department::whereIn('id', $deparmentIds)->get();
 
-            $events = Event::
+            $eventsMadeByUser = Event::
                 join('terms', 'events.term_id', '=', 'terms.id')
                 ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
                 ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
@@ -89,10 +102,28 @@ class CalendarController extends Controller
                     'events.date',
                     'event_junctions.date_end'
                 )
-                ->whereYear('events.date', $currentYear)
-                ->whereYear('event_junctions.date_end', $currentYear)
+                ->whereNull('approved_by_admin_at')
+                ->get();
+
+            $eventsApproved = Event::
+                join('terms', 'events.term_id', '=', 'terms.id')
+                ->join('event_junctions', 'events.id', '=', 'event_junctions.event_id')  // Still join event_junctions
+                ->join('venues', 'event_junctions.venue_id', '=', 'venues.id')  // Join venues from event_junctions
+                ->join('event_departments', 'events.id', '=', 'event_departments.event_id')  // Join event_departments directly
+                ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
+                ->select(
+                    'events.date as date_start',
+                    'event_junctions.date_end as date_end'
+                )
+                ->groupBy(
+                    'events.date',
+                    'event_junctions.date_end'
+                )
                 ->whereNotNull('approved_by_admin_at')
                 ->get();
+
+
+            $events = $eventsMadeByUser->concat($eventsApproved);
 
 
             $eventsWithDetails = Event::
@@ -135,6 +166,7 @@ class CalendarController extends Controller
                     'event_junctions.approved_by_venue_coordinator_at',
                     'event_junctions.updated_at',
                 )
+
                 ->get();
         }
 
@@ -156,8 +188,7 @@ class CalendarController extends Controller
                     'events.date',
                     'event_junctions.date_end'
                 )
-                ->whereYear('events.date', $currentYear)
-                ->whereYear('event_junctions.date_end', $currentYear)
+
                 ->get();
 
 
@@ -202,6 +233,7 @@ class CalendarController extends Controller
                     'event_junctions.approved_by_venue_coordinator_at',
                     'event_junctions.updated_at',
                 )
+
                 ->get();
 
 
@@ -211,7 +243,7 @@ class CalendarController extends Controller
 
         if ($user_role == 'venue_coordinator') {
 
-            $departments = Department::all();
+            $departments = Department::whereNotIn('accronym', ['SHS', 'College', 'ELEM', 'GS'])->get();
 
             $venueIds = VenueCoordinator::where('user_id', Auth::user()->id)->get()->pluck('venue_id');
 
@@ -232,8 +264,7 @@ class CalendarController extends Controller
                     'event_junctions.date_end'
                 )
                 ->whereIn('venue_id', $venueIds)
-                ->whereYear('events.date', $currentYear)
-                ->whereYear('event_junctions.date_end', $currentYear)
+
                 ->get();
 
 
@@ -278,8 +309,7 @@ class CalendarController extends Controller
                     'event_junctions.updated_at',
                 )
                 ->whereIn('venue_id', $venueIds)
-                ->whereYear('events.date', $currentYear)
-                ->whereYear('event_junctions.date_end', $currentYear)
+
                 ->get();
         }
 
@@ -311,7 +341,7 @@ class CalendarController extends Controller
 
         $venues = Venue::all();
         $terms = Term::all();
-        $departments = Department::all();
+        $departments = Department::whereNotIn('accronym', ['SHS', 'College', 'ELEM', 'GS'])->get();
 
         // Get the user's role
         $userRole = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
@@ -402,9 +432,7 @@ class CalendarController extends Controller
                 'event_junctions.updated_at'
             )
             ->whereNotNull('event_junctions.approved_by_admin_at')
-            ->where('events.name', 'LIKE', '%' . $searchValue . '%')
             ->whereYear('events.date', $currentYear);
-
 
         if ($departmentId && $departmentId != 'all') {
             $eventQuery->where('departments.id', $departmentId);
@@ -429,27 +457,32 @@ class CalendarController extends Controller
             }
 
         } elseif ($userRole == 'event_coordinator') {
+            $deparmentIds = UserDepartment::where('user_id', Auth::user()->id)->get()->pluck('department_id');
 
-            $userDeparmentIds = UserDepartment::where('user_id', Auth::user())->get()->pluck('department_id');
+            $departments = Department::whereIn('id', $deparmentIds)->get();
 
-            $departmentAcronyms = Department::whereIn('id', $userDeparmentIds)->get()->pluck('accronym');
+            // Get the department IDs associated with the logged-in user
+            $userDeparmentIds = UserDepartment::where('user_id', Auth::user()->id)->get()->pluck('department_id');
 
+            // Get the department acronyms based on the user's departments
+            $departmentAcronyms = Department::whereIn('id', $userDeparmentIds)->get()->pluck('accronym')->toArray();
 
-            if ($venueId && $venueId != 'all') {
-                $eventQuery->where('event_junctions.venue_id', $venueId)
-                    ->whereLike
-                ;
+            // Convert the array of acronyms into a comma-separated string
+            $departmentAcronymsString = implode(',', $departmentAcronyms);
+
+            // Apply the filtering condition if venueId is provided and not 'all'
+            if ($venueId && $venueId != 'all' && $departmentId == 'all') {
+                $eventQuery->where('event_junctions.venue_id', $venueId);
             }
 
+            if ($venueId && $venueId != 'all' && $departmentId != 'all') {
+                $eventQuery->where('event_junctions.venue_id', $venueId)
+                    ->havingRaw('FIND_IN_SET(?, department_acronyms)', [$departmentAcronymsString]);
+            }
         }
 
-        if (in_array($userRole, ['event_coordinator', 'venue_coordinator'])) {
-            $departmentIds = UserDepartment::where('user_id', Auth::user()->id)->pluck('department_id');
-            $eventQuery->whereIn('departments.id', $departmentIds);
-        }
 
         $events = $eventQuery->get();
-
 
         $currentDepartment = $departmentId != 'all' ? Department::find($departmentId) : ['id' => 'all', 'name' => 'All'];
         $currentVenue = $venueId != 'all' ? Venue::find($venueId) : ['id' => 'all', 'name' => 'All'];
@@ -535,6 +568,14 @@ class CalendarController extends Controller
 
 
         $departmentsForm = $departmentsWithNoParent->concat($departmentsWithParent);
+
+
+
+        if ($userRole == 'event_coordinator') {
+            $departmentsForm = $departmentsForm->filter(function ($department) use ($departmentAcronyms) {
+                return in_array($department->acronym, $departmentAcronyms);
+            });
+        }
 
 
         return Inertia::render('Calendar/calendar', [

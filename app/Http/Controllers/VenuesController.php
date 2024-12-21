@@ -56,8 +56,8 @@ class VenuesController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
-                ->whereNotNull('approved_by_venue_coordinator_at')
-                ->whereIn('venues_id', $venueIds)
+                ->whereNotNull('event_junctions.approved_by_venue_coordinator_at')
+                ->whereIn('event_junctions.venue_id', $venueIds)
                 ->get();
 
 
@@ -96,8 +96,9 @@ class VenuesController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
-                ->whereNull('approved_by_venue_coordinator_at')
-                ->whereIn('venues_id', $venueIds)
+                ->whereNull('event_junctions.approved_by_venue_coordinator_at')
+                ->whereNull('event_junctions.comment')
+                ->whereIn('event_junctions.venue_id', $venueIds)
                 ->get();
 
 
@@ -109,6 +110,7 @@ class VenuesController extends Controller
                 ->join('departments', 'event_departments.department_id', '=', 'departments.id')  // Join departments
                 ->select(
                     'events.id as id',
+                    'events.name as event_name',
                     'terms.name as term_name',
                     'events.name as venue_name',
                     'events.levels as levels',
@@ -136,10 +138,10 @@ class VenuesController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
-                ->whereIn('venues_id', $venueIds)
-                ->whereNull('approved_by_venue_coordinator_at')
-                ->whereNull('approved_by_admin_at')
-                ->whereNotNull('comment')
+                ->whereIn('event_junctions.venue_id', $venueIds)
+                ->whereNull('event_junctions.approved_by_venue_coordinator_at')
+                ->whereNull('event_junctions.approved_by_admin_at')
+                ->whereNotNull('event_junctions.comment')
                 ->get();
         } else {
             $venuesApproved = Event::
@@ -175,7 +177,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
-                ->whereNotNull('approved_by_venue_coordinator_at')
+                ->whereNotNull('event_junctions.approved_by_venue_coordinator_at')
                 ->get();
 
 
@@ -212,7 +214,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
-                ->whereNull('approved_by_venue_coordinator_at')
+                ->whereNull('event_junctions.approved_by_venue_coordinator_at')
                 ->get();
 
 
@@ -249,9 +251,9 @@ class VenuesController extends Controller
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
                 )
-                ->whereNull('approved_by_venue_coordinator_at')
-                ->whereNull('approved_by_admin_at')
-                ->whereNotNull('comment')
+                ->whereNull('event_junctions.approved_by_venue_coordinator_at')
+                ->whereNull('event_junctions.approved_by_admin_at')
+                ->whereNotNull('event_junctions.comment')
                 ->get();
         }
 

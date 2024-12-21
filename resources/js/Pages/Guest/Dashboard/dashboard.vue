@@ -457,12 +457,18 @@ const openSingleEvent = (id) => {
                     >
                         <div class="flex space-x-1">
                             <p class="font-bold">{{ event.name }}</p>
-
+                            <span> on </span>
+                            <span
+                                >{{ formatDate(event.date_start) }}
+                                {{ formatTime(event.time_start) }} to
+                                {{ formatDate(event.date_end) }}
+                                {{ formatTime(event.time_end) }}</span
+                            >
                             <span>at</span>
-
-                            <span class="font-semibold"> </span>
-                            <span>-</span>
-                            <span class="font-semibold"> </span>
+                            <span class="font-semibold">
+                                {{ event.venue_name }} at
+                                {{ event.venue_building }}</span
+                            >
                         </div>
                     </div>
                 </div>

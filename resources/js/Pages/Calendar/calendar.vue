@@ -1434,11 +1434,6 @@ const convertToDate = (month, day, year) => {
                                                                 multiple
                                                             >
                                                                 <option
-                                                                    value="All Levels"
-                                                                >
-                                                                    All Levels
-                                                                </option>
-                                                                <option
                                                                     v-for="(
                                                                         item,
                                                                         index

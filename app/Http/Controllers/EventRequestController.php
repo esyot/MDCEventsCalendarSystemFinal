@@ -57,6 +57,7 @@ class EventRequestController extends Controller
                     'users.lname as user_lname',
                     'events.id as event_id',
                     'terms.name as term_name',
+                    'terms.id as term_id',
                     'events.name as event_name',
                     'events.levels as levels',
                     'venues.name as venue_name',
@@ -79,6 +80,7 @@ class EventRequestController extends Controller
                     'users.lname',
                     'events.id',
                     'terms.name',
+                    'terms.id',
                     'events.name',
                     'events.levels',
                     'events.date',
@@ -94,6 +96,7 @@ class EventRequestController extends Controller
                     'event_junctions.updated_at',
                 )
                 ->where('events.user_id', Auth::user()->id)
+                ->orderBy('event_junctions.created_at', 'DESC')
                 ->get();
 
 
@@ -151,6 +154,7 @@ class EventRequestController extends Controller
                     'event_junctions.updated_at',
                 )
                 ->whereIn('venue_id', $venuesAssignedIds)
+                ->orderBy('event_junctions.created_at', 'DESC')
                 ->get();
 
 
@@ -174,6 +178,7 @@ class EventRequestController extends Controller
                     'events.levels as levels',
                     'venues.name as venue_name',
                     'venues.id as venue_id',
+                    'event_junctions.filename as filename',
                     'venues.building as venue_building',
                     'events.date as date_start',
                     'event_junctions.time_start as time_start',
@@ -199,6 +204,7 @@ class EventRequestController extends Controller
                     'venues.id',
                     'venues.name',
                     'venues.building',
+                    'event_junctions.filename',
                     'event_junctions.time_end',
                     'event_junctions.time_start',
                     'event_junctions.date_end',
@@ -207,6 +213,7 @@ class EventRequestController extends Controller
                     'event_junctions.comment',
                     'event_junctions.updated_at',
                 )
+                ->orderBy('event_junctions.created_at', 'DESC')
                 ->get();
 
         }
@@ -271,15 +278,6 @@ class EventRequestController extends Controller
         return Inertia::render('EventRequest/editEvent', [
             'event' => $event
         ]);
-    }
-
-
-    public function destroy($id)
-    {
-        $event = EventRequest::find($id);
-        $event->delete();
-
-        return redirect()->route('eventRequests.index')->with('success', 'Event request deleted successfully.');
     }
 
 
@@ -449,6 +447,7 @@ class EventRequestController extends Controller
 
     public function update_request(Request $request)
     {
+
         $departmentIds = explode(',', trim($request->departments[0]));
         $departmentIds = array_map('intval', array_map('trim', $departmentIds));
 

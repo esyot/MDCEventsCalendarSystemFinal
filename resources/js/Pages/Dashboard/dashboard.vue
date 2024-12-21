@@ -307,15 +307,17 @@ const openSingleEvent = (id) => {
                     >
                         <div class="flex space-x-1">
                             <p class="font-bold">{{ event.name }}</p>
-
-                            <span>at</span>
-
-                            <span class="font-semibold">
-                                {{ formatTime(event.time_start) }}
-                            </span>
-                            <span>-</span>
-                            <span class="font-semibold">
+                            <span> on </span>
+                            <span
+                                >{{ formatDate(event.date_start) }}
+                                {{ formatTime(event.time_start) }} to
+                                {{ formatDate(event.date_end) }}
                                 {{ formatTime(event.time_end) }}</span
+                            >
+                            <span>at</span>
+                            <span class="font-semibold">
+                                {{ event.venue_name }} at
+                                {{ event.venue_building }}</span
                             >
                         </div>
                     </div>
@@ -359,21 +361,98 @@ const openSingleEvent = (id) => {
                             >
                                 <div class="flex flex-col">
                                     <h1
-                                        v-if="event.isApprovedByAdmin != null"
-                                        class="text-lg font-medium"
-                                    >
-                                        New approved request
-                                    </h1>
-
-                                    <h1
-                                        v-else="
-                                            event.isApprovedByAdmin == null &&
-                                            event.isApprovedByVenueCoordinator ==
-                                                null
+                                        v-if="
+                                            event.approved_by_admin_at ==
+                                                null &&
+                                            event.approved_by_venue_coordinator_at ==
+                                                null &&
+                                            user_role == 'admin'
                                         "
                                         class="text-lg font-medium"
                                     >
-                                        New request
+                                        New Request
+                                    </h1>
+
+                                    <h1
+                                        v-if="
+                                            event.approved_by_admin_at ==
+                                                null &&
+                                            event.approved_by_venue_coordinator_at ==
+                                                null &&
+                                            user_role == 'venue_coordinator'
+                                        "
+                                        class="text-lg font-medium"
+                                    >
+                                        New Request
+                                    </h1>
+
+                                    <h1
+                                        v-if="
+                                            event.approved_by_venue_coordinator_at !=
+                                                null &&
+                                            event.approved_by_admin_at !=
+                                                null &&
+                                            user_role == 'event_coordinator'
+                                        "
+                                        class="text-lg font-medium"
+                                    >
+                                        New Approved Request
+                                    </h1>
+
+                                    <h1
+                                        v-if="
+                                            event.approved_by_venue_coordinator_at ==
+                                                null &&
+                                            event.approved_by_admin_at ==
+                                                null &&
+                                            event.comment != null &&
+                                            user_role == 'event_coordinator'
+                                        "
+                                        class="text-lg font-medium"
+                                    >
+                                        Venue Declined
+                                    </h1>
+
+                                    <h1
+                                        v-if="
+                                            event.approved_by_venue_coordinator_at ==
+                                                null &&
+                                            event.approved_by_admin_at ==
+                                                null &&
+                                            event.comment == null &&
+                                            user_role == 'event_coordinator'
+                                        "
+                                        class="text-lg font-medium"
+                                    >
+                                        Pending Venue Coordinator Approval
+                                    </h1>
+
+                                    <h1
+                                        v-if="
+                                            event.approved_by_venue_coordinator_at !=
+                                                null &&
+                                            event.approved_by_admin_at ==
+                                                null &&
+                                            event.comment == null &&
+                                            user_role == 'event_coordinator'
+                                        "
+                                        class="text-lg font-medium"
+                                    >
+                                        Pending Admin Approval
+                                    </h1>
+
+                                    <h1
+                                        v-if="
+                                            event.approved_by_venue_coordinator_at !=
+                                                null &&
+                                            event.approved_by_admin_at ==
+                                                null &&
+                                            event.comment != null &&
+                                            user_role == 'event_coordinator'
+                                        "
+                                        class="text-lg font-medium"
+                                    >
+                                        Admin Declined
                                     </h1>
 
                                     <p class="truncate w-[300px]">
