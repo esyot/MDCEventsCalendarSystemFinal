@@ -71,6 +71,7 @@ class EventRequestController extends Controller
                     'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
                     'event_junctions.comment as comment',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
@@ -94,6 +95,7 @@ class EventRequestController extends Controller
                     'event_junctions.approved_by_venue_coordinator_at',
                     'event_junctions.comment',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->where('events.user_id', Auth::user()->id)
                 ->orderBy('event_junctions.created_at', 'DESC')
@@ -130,6 +132,7 @@ class EventRequestController extends Controller
                     'event_junctions.approved_by_venue_coordinator_at as approved_by_venue_coordinator_at',
                     'event_junctions.comment as comment',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.id ORDER BY departments.id ASC SEPARATOR ", ") as department_id'),
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
@@ -152,6 +155,7 @@ class EventRequestController extends Controller
                     'event_junctions.approved_by_venue_coordinator_at',
                     'event_junctions.comment',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereIn('venue_id', $venuesAssignedIds)
                 ->orderBy('event_junctions.created_at', 'DESC')
