@@ -16,12 +16,12 @@ class CheckUserAccess
         if (Auth::check()) {
             $user = Auth::user();
 
-            $allowedRoles = Role::whereIn('role', 'event_coordinator', 'venue_coordinator')->pluck('id');
+            $allowedRoles = Role::whereIn('role', ['sec-admin', 'event_coordinator', 'venue_coordinator'])->pluck('id');
             $usersCanAccess = UserRole::whereIn('role_id', $allowedRoles)
                 ->pluck('user_id');
 
 
-            if (!$usersCanAccess->contains($user->id)) {
+            if (! $usersCanAccess->contains($user->id)) {
 
                 return redirect()->back()->with('error', 'Your access rights have changed. You do not have permission to access this page.');
             }
