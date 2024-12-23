@@ -25,7 +25,7 @@ class EventRequestController extends Controller
     public function index()
     {
 
-        $rolesAllowed = Role::whereIn('role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])->pluck('id');
+        $rolesAllowed = Role::whereIn('role', ['super_admin', 'sec-admin', 'venue_coordinator', 'event_coordinator'])->pluck('id');
 
         $user_role_id = UserRole::where('user_id', Auth::user()->id)->whereIn('role_id', $rolesAllowed)
             ->first();
@@ -159,7 +159,7 @@ class EventRequestController extends Controller
 
 
 
-        } else if ($user_role == 'admin') {
+        } else if ($user_role == 'sec-admin') {
 
             $events = Event::
                 join('terms', 'events.term_id', '=', 'terms.id')
@@ -285,7 +285,7 @@ class EventRequestController extends Controller
     {
 
         $department = collect($request->event_departments)
-            ->map(fn($item) => explode(',', $item)[0])
+            ->map(fn ($item) => explode(',', $item)[0])
             ->unique()
             ->toArray();
 
@@ -386,7 +386,7 @@ class EventRequestController extends Controller
 
             return redirect()->back()->with('success', 'Event was approved by Venue Coordinator Successfully!');
 
-        } elseif ($role == 'admin') {
+        } elseif ($role == 'sec-admin') {
 
 
             $event = EventJunction::where('event_id', $id)->first();
@@ -418,7 +418,7 @@ class EventRequestController extends Controller
             ]);
 
             return redirect()->back()->with('success', 'Event was retracted successfully!');
-        } else if ($role == 'admin') {
+        } else if ($role == 'sec-admin') {
             $event = EventJunction::where('event_id', $id);
 
             $event->update([
@@ -495,7 +495,7 @@ class EventRequestController extends Controller
             $file = $request->file('activity_design');
             if ($file && $file->isValid()) {
                 $directory = 'files/uploads';
-                if (!Storage::disk('public')->exists($directory)) {
+                if (! Storage::disk('public')->exists($directory)) {
                     Storage::disk('public')->makeDirectory($directory);
                 }
 

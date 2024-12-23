@@ -16,11 +16,11 @@ class CheckUserRolesAndPermissions
         if (Auth::check()) {
             $user = Auth::user();
 
-            $roleAllowedIds = Role::whereIn('role', ['admin', 'event_coordinator', 'venue_coordinator'])->pluck('id');
+            $roleAllowedIds = Role::whereIn('role', ['sec-admin', 'event_coordinator', 'venue_coordinator'])->pluck('id');
             $usersCanLogin = UserRole::whereIn('role_id', $roleAllowedIds)->pluck('user_id');
 
 
-            if (!$usersCanLogin->contains($user->id)) {
+            if (! $usersCanLogin->contains($user->id)) {
                 Auth::logout();
                 return redirect()->route('guest')->with('error', 'Your access rights have changed. Please log in again.');
             }

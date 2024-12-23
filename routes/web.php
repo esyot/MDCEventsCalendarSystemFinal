@@ -43,7 +43,7 @@ Route::middleware(['auth', CheckUserRolesAndPermissions::class])->group(function
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/dashboard', [PageController::class, 'dashboard'])->name('dashboard');
 
-    Route::middleware([CheckUserRole::class . ':super_admin'])->group(function () {
+    Route::middleware([CheckUserRole::class . ':admin'])->group(function () {
     });
 
     Route::get('/admin/calendar-filter', [CalendarController::class, 'filter'])->name('filter');
@@ -58,7 +58,7 @@ Route::get('/unauthorized', function () {
     return inertia('Unauthorized/unauthorized');
 })->name('unauthorized');
 
-Route::middleware([CheckUserRole::class . ':super_admin,admin'])->group(function () {
+Route::middleware([CheckUserRole::class . ':sec-admin'])->group(function () {
 
     //users
     Route::delete('/users/user-remove-department/{user}/{department}', [UserController::class, 'userDepartmentRemove']);
@@ -78,7 +78,7 @@ Route::middleware([CheckUserRole::class . ':super_admin,admin'])->group(function
     Route::post('/venue-coordinator/venue-add/', [VenueCoordinatorController::class, 'venueAdd']);
 });
 
-Route::middleware([CheckUserRole::class . ':super_admin,admin,event_coordinator'])->group(function () {
+Route::middleware([CheckUserRole::class . ':sec-admin,event_coordinator'])->group(function () {
 
     Route::post('/admin/event-create', [EventRequestController::class, 'create_request'])->name('event.create');
     Route::post('/admin/event-update', [EventRequestController::class, 'update_request']);
@@ -86,8 +86,8 @@ Route::middleware([CheckUserRole::class . ':super_admin,admin,event_coordinator'
 
 
 });
-// for super_admin,admin and event coordinator routes
-Route::middleware([CheckUserRole::class . ':super_admin,admin,event_coordinator,venue_coordinator'])->group(function () {
+// for sec-admin and event coordinator routes
+Route::middleware([CheckUserRole::class . ':sec-admin,event_coordinator,venue_coordinator'])->group(function () {
     // Event Request Routes
     Route::get('/eventRequest', [EventRequestController::class, 'index'])->name('eventRequest');
     Route::get('/admin/event/approve/{role}/{id}', [EventRequestController::class, 'approveEvent']);
@@ -96,7 +96,7 @@ Route::middleware([CheckUserRole::class . ':super_admin,admin,event_coordinator,
 });
 
 // for admin routes
-Route::middleware([CheckUserRole::class . ':super_admin,admin,venue_coordinator'])->group(function () {
+Route::middleware([CheckUserRole::class . ':sec-admin,venue_coordinator'])->group(function () {
 
     Route::get('/admin/event/comment-add/{id}', [EventRequestController::class, 'addComment']);
     Route::get('/admin/view-activity-design/{file}', [EventRequestController::class, 'viewActivityDesign']);

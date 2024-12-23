@@ -110,7 +110,8 @@ const toggleDropdown = () => {
                         'p-2 rounded flex  items-center w-full text-white',
                     ]"
                     v-if="
-                        user_role == 'venue_coordinator' || user_role == 'admin'
+                        user_role == 'venue_coordinator' ||
+                        user_role == 'sec-admin'
                     "
                     class="p-2 rounded flex items-center w-full text-white"
                 >
@@ -172,7 +173,9 @@ const toggleDropdown = () => {
                 </a>
 
                 <a
-                    v-if="user_role === 'super_admin' || user_role === 'admin'"
+                    v-if="
+                        user_role === 'super_admin' || user_role === 'sec-admin'
+                    "
                     href="/venue-coordinators"
                     :class="[
                         isSidebarOpen
@@ -199,7 +202,9 @@ const toggleDropdown = () => {
                 </a>
 
                 <a
-                    v-if="user_role === 'super_admin' || user_role === 'admin'"
+                    v-if="
+                        user_role === 'super_admin' || user_role === 'sec-admin'
+                    "
                     href="/users"
                     :class="[
                         isSidebarOpen

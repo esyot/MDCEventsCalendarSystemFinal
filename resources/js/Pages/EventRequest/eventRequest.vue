@@ -155,7 +155,7 @@ const closeErrorMessage = () => {
                                 v-if="
                                     user_role == 'venue_coordinator' ||
                                     user_role == 'super_admin' ||
-                                    user_role == 'admin' ||
+                                    user_role == 'sec-admin' ||
                                     user_role == 'event_coordinator'
                                 "
                                 @click="eventView(event.event_id)"
@@ -181,7 +181,7 @@ const closeErrorMessage = () => {
                                         event.approved_by_admin_at == null) ||
                                     (user_role == 'super_admin' &&
                                         event.approved_by_admin_at == null) ||
-                                    (user_role == 'admin' &&
+                                    (user_role == 'sec-admin' &&
                                         event.approved_by_admin_at == null)
                                 "
                                 @click="eventDelete(event.event_id)"
@@ -724,7 +724,7 @@ const closeErrorMessage = () => {
                         </div>
 
                         <div
-                            v-if="user_role == 'admin'"
+                            v-if="user_role == 'sec-admin'"
                             class="flex justify-between p-2"
                         >
                             <h1 class="font-medium">Activity Design:</h1>
@@ -799,7 +799,7 @@ const closeErrorMessage = () => {
                             "
                             method="GET"
                             v-if="
-                                user_role == 'admin' &&
+                                user_role == 'sec-admin' &&
                                 event.approved_by_admin_at == null
                             "
                             class="p-2"
@@ -845,7 +845,7 @@ const closeErrorMessage = () => {
                         <div
                             id="approve-admin"
                             v-if="
-                                user_role == 'admin' &&
+                                user_role == 'sec-admin' &&
                                 event.approved_by_venue_coordinator_at !=
                                     null &&
                                 event.approved_by_admin_at == null
@@ -970,7 +970,7 @@ const closeErrorMessage = () => {
                         <!-- /venue approve form -->
                         <div
                             v-if="
-                                user_role == 'admin' &&
+                                user_role == 'sec-admin' &&
                                 event.approved_by_admin_at != null
                             "
                             id="approve-admin"

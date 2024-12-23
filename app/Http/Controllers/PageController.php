@@ -19,7 +19,7 @@ class PageController extends Controller
 
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['super_admin', 'admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['sec-admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 

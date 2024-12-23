@@ -45,7 +45,7 @@ class UserController extends Controller
 
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['sec-admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 
@@ -94,7 +94,7 @@ class UserController extends Controller
             ->orWhere('fname', 'LIKE', '%' . $request->search_value . '%')
             ->pluck('id')->unique();
 
-        $roleIds = Role::whereIn('role', ['admin', 'venue_coordinator', 'event_coordinator'])->get()->pluck('id');
+        $roleIds = Role::whereIn('role', ['sec-admin', 'venue_coordinator', 'event_coordinator'])->get()->pluck('id');
 
         $usersWithExcludedRoles = UserRole::whereIn('role_id', $roleIds)
             ->whereIn('user_id', $userIds)
@@ -141,7 +141,7 @@ class UserController extends Controller
 
         $user_role = Role::join('user_roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', Auth::user()->id)
-            ->whereIn('roles.role', ['admin', 'venue_coordinator', 'event_coordinator'])
+            ->whereIn('roles.role', ['sec-admin', 'venue_coordinator', 'event_coordinator'])
             ->pluck('roles.role')
             ->first();
 
@@ -172,7 +172,7 @@ class UserController extends Controller
 
         $user = User::find($request->id);
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->back()->withErrors(['error' => 'User not found.']);
         }
 

@@ -16,8 +16,7 @@ export default defineConfig({
         },
     },
     server: {
-        host: "192.168.137.1",
-        port: 5173,
-        strictPort: true,
+        host: "localhost", // Use 'localhost' instead of '0.0.0.0'
+        port: 3000, // Port number can be adjusted
     },
 });

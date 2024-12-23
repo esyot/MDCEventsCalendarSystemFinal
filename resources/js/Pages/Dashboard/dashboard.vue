@@ -366,7 +366,7 @@ const openSingleEvent = (id) => {
                                                 null &&
                                             event.approved_by_venue_coordinator_at ==
                                                 null &&
-                                            user_role == 'admin'
+                                            user_role == 'sec-admin'
                                         "
                                         class="text-lg font-medium"
                                     >
