@@ -348,7 +348,7 @@ const modalSelectedUserClose = () => {
             />
         </div>
         <button
-            v-if="user_role == 'sec-admin' || user_role == 'sec-admin'"
+            v-if="user_role == 'admin' || user_role == 'sec-admin'"
             @click="toggleSearchUserFormModal()"
             class="bg-blue-500 text-blue-100 py-2 px-4 rounded hover:opacity-90"
         >
@@ -369,8 +369,7 @@ const modalSelectedUserClose = () => {
                         <th
                             class="text-center py-3"
                             v-if="
-                                user_role == 'sec-admin' ||
-                                user_role == 'sec-admin'
+                                user_role == 'admin' || user_role == 'sec-admin'
                             "
                         >
                             Edit Role
@@ -392,8 +391,7 @@ const modalSelectedUserClose = () => {
                         <td
                             class="py-3 px-6 flex items-center justify-center space-x-4"
                             v-if="
-                                user_role == 'super_admin' ||
-                                user_role == 'sec-admin'
+                                user_role == 'admin' || user_role == 'sec-admin'
                             "
                         >
                             <button
