@@ -40,6 +40,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end as date_end',
                     'event_junctions.time_end as time_end',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
                 ->groupBy(
@@ -55,6 +56,7 @@ class VenuesController extends Controller
                     'event_junctions.time_start',
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereNotNull('event_junctions.approved_by_venue_coordinator_at')
                 ->whereIn('event_junctions.venue_id', $venueIds)
@@ -80,6 +82,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end as date_end',
                     'event_junctions.time_end as time_end',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
                 ->groupBy(
@@ -95,6 +98,7 @@ class VenuesController extends Controller
                     'event_junctions.time_start',
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereNull('event_junctions.approved_by_venue_coordinator_at')
                 ->whereNull('event_junctions.comment')
@@ -122,6 +126,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end as date_end',
                     'event_junctions.time_end as time_end',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
                 ->groupBy(
@@ -137,6 +142,7 @@ class VenuesController extends Controller
                     'event_junctions.time_start',
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereIn('event_junctions.venue_id', $venueIds)
                 ->whereNull('event_junctions.approved_by_venue_coordinator_at')
@@ -162,6 +168,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end as date_end',
                     'event_junctions.time_end as time_end',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
                 ->groupBy(
@@ -176,6 +183,7 @@ class VenuesController extends Controller
                     'event_junctions.time_start',
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereNotNull('event_junctions.approved_by_venue_coordinator_at')
                 ->get();
@@ -199,6 +207,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end as date_end',
                     'event_junctions.time_end as time_end',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
                 ->groupBy(
@@ -213,6 +222,7 @@ class VenuesController extends Controller
                     'event_junctions.time_start',
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereNull('event_junctions.approved_by_venue_coordinator_at')
                 ->get();
@@ -236,6 +246,7 @@ class VenuesController extends Controller
                     'event_junctions.date_end as date_end',
                     'event_junctions.time_end as time_end',
                     'event_junctions.updated_at as updated_at',
+                    'event_junctions.created_at as created_at',
                     DB::raw('GROUP_CONCAT(departments.accronym ORDER BY departments.accronym ASC SEPARATOR ", ") as department_acronyms')
                 )
                 ->groupBy(
@@ -250,6 +261,7 @@ class VenuesController extends Controller
                     'event_junctions.time_start',
                     'event_junctions.date_end',
                     'event_junctions.updated_at',
+                    'event_junctions.created_at',
                 )
                 ->whereNull('event_junctions.approved_by_venue_coordinator_at')
                 ->whereNull('event_junctions.approved_by_admin_at')
