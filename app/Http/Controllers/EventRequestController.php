@@ -392,7 +392,7 @@ class EventRequestController extends Controller
 
             return redirect()->back()->with('success', 'Event was approved by Venue Coordinator Successfully!');
 
-        } elseif ($role == 'sec-admin') {
+        } elseif ($role == 'admin') {
 
 
             $event = EventJunction::where('event_id', $id)->first();

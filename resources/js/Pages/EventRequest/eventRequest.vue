@@ -861,15 +861,13 @@ const closeErrorMessage = () => {
                             >
                                 Decline
                             </a> -->
-                            <a
-                                :href="
-                                    '/admin/event/approve/admin/' +
-                                    event.event_id
-                                "
+                            <button
+                                @click="approveEvent(event.event_id)"
                                 type="button"
                                 class="px-4 py-2 bg-green-500 text-green-100 rounded"
-                                >Approve</a
                             >
+                                Approve
+                            </button>
                         </div>
                         <div
                             id="retract-venue-coordinator"
@@ -1172,6 +1170,9 @@ export default {
         departmentsForm: {},
     },
     methods: {
+        approveEvent(eventId) {
+            Inertia.get(`/admin/event/approve/admin/${eventId}`);
+        },
         translatedLevels(levels) {
             if (!levels) return ""; // If levels is undefined or null, return empty string
 
