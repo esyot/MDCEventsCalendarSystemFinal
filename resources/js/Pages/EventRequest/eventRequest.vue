@@ -830,6 +830,10 @@ const closeErrorMessage = () => {
                                 (user_role == 'event_coordinator' &&
                                     event.approved_by_venue_coordinator_at !=
                                         null &&
+                                    event.approved_by_admin_at != null) ||
+                                (user_role == 'sec-admin' &&
+                                    event.approved_by_venue_coordinator_at !=
+                                        null &&
                                     event.approved_by_admin_at != null)
                             "
                             class="flex p-2 justify-end"

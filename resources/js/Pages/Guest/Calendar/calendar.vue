@@ -282,49 +282,48 @@ const openSingleSearchedEvent = (id) => {
         id="eventsDetails"
         class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-40"
     >
-        <div class="bg-white rounded shadow-md">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-4">
             <div
-                class="flex justify-between items-center border-b border-gray-200"
+                class="flex justify-between items-center border-b border-gray-200 pb-4 mb-4"
             >
-                <h1 class="text-xl px-2 font-semibold">
+                <h1 class="text-xl px-2 font-semibold text-gray-900">
                     Events on
                     <span class="text-red-500">{{ dateSelected }}</span>
                 </h1>
                 <button
                     @click="closeEventsDetails()"
-                    class="px-2 text-2xl font-bold hover:opacity-50"
+                    class="px-2 text-2xl font-bold text-gray-700 hover:opacity-75 focus:outline-none"
                 >
                     &times;
                 </button>
             </div>
 
-            <div class="">
-                <table class="w-[600px] border-collapse">
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto border-collapse">
                     <thead>
                         <tr class="w-full bg-gray-200">
                             <th
-                                class="text-center font-medium text-gray-700 border-b"
+                                class="text-center font-medium text-gray-700 border-b py-2 px-4"
                             >
                                 Event Name
                             </th>
                             <th
-                                class="text-center font-medium text-gray-700 border-b"
+                                class="text-center font-medium text-gray-700 border-b py-2 px-4"
                             >
                                 Department
                             </th>
                             <th
-                                class="text-center font-medium text-gray-700 border-b"
+                                class="text-center font-medium text-gray-700 border-b py-2 px-4"
                             >
                                 Date Start
                             </th>
                             <th
-                                class="text-center font-medium text-gray-700 border-b"
+                                class="text-center font-medium text-gray-700 border-b py-2 px-4"
                             >
                                 Date End
                             </th>
-
                             <th
-                                class="text-center font-medium text-gray-700 border-b"
+                                class="text-center font-medium text-gray-700 border-b py-2 px-4"
                             >
                                 Action
                             </th>
@@ -334,29 +333,31 @@ const openSingleSearchedEvent = (id) => {
                         <tr
                             v-for="event in filteredEvents"
                             :key="event.id"
-                            :style="
-                                'background-color:' +
-                                departmentColor(event.department_id)
-                            "
-                            class="p-4 text-center hover:bg-gray-200 cursor-pointer"
+                            :style="{
+                                'background-color': departmentColor(
+                                    event.department_id
+                                ),
+                            }"
+                            class="p-4 text-center hover:bg-gray-100 cursor-pointer"
                         >
-                            <td>{{ event.name }}</td>
-                            <td>{{ event.department_acronyms }}</td>
-                            <td>
+                            <td class="py-2 px-4">{{ event.name }}</td>
+                            <td class="py-2 px-4">
+                                {{ event.department_acronyms }}
+                            </td>
+                            <td class="py-2 px-4">
                                 {{ formatDate(event.date_start) }}
                                 {{ formatTime(event.time_start) }}
                             </td>
-                            <td>
+                            <td class="py-2 px-4">
                                 {{ formatDate(event.date_end) }}
                                 {{ formatTime(event.time_end) }}
                             </td>
-
-                            <td>
+                            <td class="py-2 px-4">
                                 <button
                                     @click="openSingleEvent(event.id)"
-                                    class="hover:opacity-50"
+                                    class="hover:opacity-75 text-blue-500"
                                 >
-                                    <i class="fas fa-eye text-blue-500"></i>
+                                    <i class="fas fa-eye"></i>
                                 </button>
                             </td>
                         </tr>
@@ -372,47 +373,65 @@ const openSingleSearchedEvent = (id) => {
             :id="'preview-' + event.id"
             class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
         >
-            <div class="bg-white rounded p-2">
-                <div>
-                    <h1 class="text-xl font-semibold">Event Details</h1>
+            <div class="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg">
+                <div class="mb-4">
+                    <h1 class="text-2xl font-semibold text-gray-800">
+                        Event Details:
+                    </h1>
                 </div>
 
-                <div class="flex flex-col items-start">
-                    <span><strong>Name:</strong> {{ event.name }}</span>
-
-                    <span
-                        ><strong>Department:</strong>
-                        {{ event.department_acronyms }}
-                    </span>
-                    <span
-                        ><strong>Term:</strong>
-                        {{ event.term_name }}
-                    </span>
-                    <span>
-                        <strong>Date Start:</strong>
-
-                        {{ formatDate(event.date_start) }}
-                        {{ formatTime(event.time_start) }}
-                    </span>
-                    <span
-                        ><strong>Date End:</strong>
-                        {{ formatDate(event.date_end) }}
-
-                        {{ formatTime(event.time_end) }}
-                    </span>
-                    <span
-                        ><strong>Venue:</strong> {{ event.venue_name }} at
-                        {{ event.venue_building }}
-                    </span>
+                <div class="space-y-2">
+                    <div class="text-gray-700">
+                        <span
+                            ><strong class="text-gray-900">Name:</strong>
+                            {{ event.name }}</span
+                        >
+                    </div>
+                    <div class="text-gray-700">
+                        <span
+                            ><strong class="text-gray-900">Department:</strong>
+                            {{ event.department_acronyms }}</span
+                        >
+                    </div>
+                    <div class="text-gray-700">
+                        <span
+                            ><strong class="text-gray-900">Term:</strong>
+                            {{ event.term_name }}</span
+                        >
+                    </div>
+                    <div class="text-gray-700">
+                        <span
+                            ><strong class="text-gray-900">Date Start:</strong>
+                            {{ formatDate(event.date_start) }}
+                            {{ formatTime(event.time_start) }}</span
+                        >
+                    </div>
+                    <div class="text-gray-700">
+                        <span
+                            ><strong class="text-gray-900">Date End:</strong>
+                            {{ formatDate(event.date_end) }}
+                            {{ formatTime(event.time_end) }}</span
+                        >
+                    </div>
+                    <div class="text-gray-700">
+                        <span
+                            ><strong class="text-gray-900">Venue:</strong>
+                            {{ event.venue_name }} at
+                            {{ event.venue_building }}</span
+                        >
+                    </div>
+                    <div>
+                        <span class="font-bold text-gray-900">Levels:</span>
+                        <span class="text-gray-700">{{
+                            formatText(event.levels)
+                        }}</span>
+                    </div>
                 </div>
-                <div class="flex justify-between flex-col">
-                    <span class="font-bold">Levels:</span>
-                    <span>{{ formatText(event.levels) }} </span>
-                </div>
-                <div class="flex w-full justify-center">
+
+                <div class="flex justify-center mt-6">
                     <button
                         @click="openSingleEvent(event.id)"
-                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                        class="mt-2 px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >
                         Close
                     </button>
@@ -431,30 +450,38 @@ const openSingleSearchedEvent = (id) => {
         id="search-results-form"
         class="flex fixed inset-0 bg-gray-800 bg-opacity-50 justify-center items-center z-50"
     >
-        <div class="bg-white rounded shadow-md">
-            <div class="flex justify-between items-center px-2">
-                <h1 class="text-xl">
-                    Search Results of <span>"{{ search_value }}"</span>
+        <div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-4xl p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-semibold text-gray-800">
+                    Search Results of
+                    <span class="text-blue-500">"{{ search_value }}"</span>
                 </h1>
                 <button
                     onclick="document.getElementById('search-results-form').classList.toggle('hidden')"
-                    class="text-2xl font-bold hover:opacity-50"
+                    class="text-2xl font-bold text-gray-500 hover:text-gray-700 transition-opacity duration-150"
                 >
                     &times;
                 </button>
             </div>
-            <table class="w-[500px] border-collapse">
+
+            <table class="w-full border-collapse table-auto">
                 <thead>
-                    <tr class="w-full bg-gray-500 text-white">
-                        <th class="text-center font-medium border-b">Name</th>
-                        <th class="text-center font-medium border-b">
+                    <tr class="bg-gray-600 text-white">
+                        <th class="text-center font-medium py-2 px-4 border-b">
+                            Name
+                        </th>
+                        <th class="text-center font-medium py-2 px-4 border-b">
                             Departments
                         </th>
-                        <th class="text-center font-medium border-b">Date</th>
-                        <th class="text-center font-medium border-b">
+                        <th class="text-center font-medium py-2 px-4 border-b">
+                            Date
+                        </th>
+                        <th class="text-center font-medium py-2 px-4 border-b">
                             Date End
                         </th>
-                        <th class="text-center font-medium border-b">Action</th>
+                        <th class="text-center font-medium py-2 px-4 border-b">
+                            Action
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -465,21 +492,26 @@ const openSingleSearchedEvent = (id) => {
                             'background-color:' +
                             departmentColor(result.department_id)
                         "
-                        class="text-center hover:bg-gray-200 cursor-pointer"
+                        class="text-center hover:bg-gray-100 cursor-pointer transition-colors duration-200"
                     >
-                        <td>{{ result.name }}</td>
-                        <td>{{ result.department_acronyms }}</td>
-                        <td>{{ formatDate(result.date_start) }}</td>
-                        <td>{{ formatDate(result.date_end) }}</td>
-
-                        <td>
+                        <td class="py-2 px-4 border-b">{{ result.name }}</td>
+                        <td class="py-2 px-4 border-b">
+                            {{ result.department_acronyms }}
+                        </td>
+                        <td class="py-2 px-4 border-b">
+                            {{ formatDate(result.date_start) }}
+                        </td>
+                        <td class="py-2 px-4 border-b">
+                            {{ formatDate(result.date_end) }}
+                        </td>
+                        <td class="py-2 px-4 border-b">
                             <button
                                 @click="
                                     openSingleSearchedEvent(result.event_id)
                                 "
-                                class="hover:opacity-50"
+                                class="text-blue-500 hover:opacity-75 transition-opacity duration-150"
                             >
-                                <i class="fas fa-eye text-blue-500"></i>
+                                <i class="fas fa-eye"></i>
                             </button>
                         </td>
                     </tr>
@@ -495,47 +527,55 @@ const openSingleSearchedEvent = (id) => {
             :id="'preview-searched-' + result.event_id"
             class="flex fixed inset-0 justify-center items-center bg-gray-800 bg-opacity-50 hidden z-50"
         >
-            <div class="bg-white rounded p-2">
-                <div>
-                    <h1 class="text-xl font-semibold">Event Details</h1>
+            <div class="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg">
+                <div class="mb-4">
+                    <h1
+                        class="text-2xl font-semibold text-gray-800 items-center"
+                    >
+                        Event Details:
+                    </h1>
                 </div>
 
-                <div class="flex flex-col items-start">
-                    <span><strong>Name:</strong> {{ result.name }}</span>
-
-                    <span
-                        ><strong>Department:</strong>
+                <div class="space-y-3">
+                    <div class="text-black-700">
+                        <span class="font-medium">Name:</span> {{ result.name }}
+                    </div>
+                    <div class="text-black-700">
+                        <span class="font-medium">Department:</span>
                         {{ result.department_acronyms }}
-                    </span>
-                    <span
-                        ><strong>Term:</strong>
+                    </div>
+                    <div class="text-black-700">
+                        <span class="font-medium">Term:</span>
                         {{ result.term_name }}
-                    </span>
-                    <span>
-                        <strong>Date Start:</strong>
-
+                    </div>
+                    <div class="text-black-700">
+                        <span class="font-medium">Date Start:</span>
                         {{ formatDate(result.date_start) }}
                         {{ formatTime(result.time_start) }}
-                    </span>
-                    <span
-                        ><strong>Date End:</strong>
+                    </div>
+                    <div class="text-black-700">
+                        <span class="font-medium">Date End:</span>
                         {{ formatDate(result.date_end) }}
-
                         {{ formatTime(result.time_end) }}
-                    </span>
-                    <span
-                        ><strong>Venue:</strong> {{ result.venue_name }} at
-                        {{ result.venue_building }}
-                    </span>
+                    </div>
+                    <div class="text-black-700">
+                        <span class="font-medium">Venue:</span>
+                        {{ result.venue_name }} at {{ result.venue_building }}
+                    </div>
+                    <div class="mt-4">
+                        <span class="font-semibold text-black-800"
+                            >Levels:</span
+                        >
+                        <span class="text-black-600">{{
+                            formatText(result.levels)
+                        }}</span>
+                    </div>
                 </div>
-                <div class="flex justify-between flex-col">
-                    <span class="font-semibold">Levels:</span>
-                    <span>{{ formatText(result.levels) }} </span>
-                </div>
-                <div class="flex justify-center">
+
+                <div class="flex justify-center mt-6">
                     <button
                         @click="openSingleSearchedEvent(result.event_id)"
-                        class="mt-2 px-4 py-2 border border-gray-300 text-gray-800 rounded hover:opacity-50"
+                        class="mt-2 px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >
                         Close
                     </button>

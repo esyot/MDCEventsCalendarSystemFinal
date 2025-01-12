@@ -348,7 +348,7 @@ const convertToDate = (month, day, year) => {
                         {{ event.venue_name }} at {{ event.venue_building }}
                     </span>
                 </div>
-                <div class="flex justify-between flex-col">
+                <div class="flex justify-between">
                     <span class="font-semibold">Levels:</span>
                     <span>{{ formatText(event.levels) }} </span>
                 </div>
@@ -1563,6 +1563,38 @@ export default {
             startTimeDisable: true,
 
             departmentSelected: [],
+
+            GS: [
+                { label: "Masters 2", value: "m2" },
+                { label: "Masters 1", value: "m1" },
+                { label: "Doctors 2", value: "d2" },
+                { label: "Doctors 1", value: "d1" },
+            ],
+            College: [
+                { label: "Qualifying", value: "cQ" },
+                { label: "4th yrs", value: "c4" },
+                { label: "3rd yrs", value: "c3" },
+                { label: "2nd yrs", value: "c2" },
+                { label: "1st yrs", value: "c1" },
+            ],
+            HS: [
+                { label: "K-11", value: "g12" },
+                { label: "K-12", value: "g11" },
+                { label: "10th grade", value: "g10" },
+                { label: "9th grade", value: "g9" },
+                { label: "8th grade", value: "g8" },
+                { label: "7th grade", value: "g7" },
+            ],
+            ELEM: [
+                { label: "6th grade", value: "g6" },
+                { label: "5th grade", value: "g5" },
+                { label: "4th grade", value: "g4" },
+                { label: "3rd grade", value: "g3" },
+                { label: "2nd grade", value: "g2" },
+                { label: "1st grade", value: "g1" },
+                { label: "Kinder 1", value: "k2" },
+                { label: "Kinder 2", value: "k1" },
+            ],
         };
     },
     inheritAttrs: false,
@@ -1907,8 +1939,37 @@ export default {
                 }
             }
         },
-        formatText(text) {
-            return text.replace(/[\[\]\""]/g, "").replace(/,/g, ", ");
+        formatText(levels) {
+            if (!levels) return ""; // If levels is undefined or null, return empty string
+
+            try {
+                // Parse the string into an actual array
+                const levelArray = JSON.parse(levels);
+
+                // Check if it's a valid array
+                if (Array.isArray(levelArray)) {
+                    const allCategories = [
+                        ...this.GS,
+                        ...this.College,
+                        ...this.HS,
+                        ...this.ELEM,
+                    ];
+
+                    // Map over each value to find its corresponding label
+                    return levelArray
+                        .map((value) => {
+                            const found = allCategories.find(
+                                (item) => item.value === value.trim()
+                            );
+                            return found ? found.label : value.trim();
+                        })
+                        .join(", ");
+                }
+            } catch (error) {
+                console.error("Invalid levels format:", error);
+                return "";
+            }
+            return "";
         },
 
         isSelected(departmentAcronym, deptIds) {
