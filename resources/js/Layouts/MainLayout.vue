@@ -127,7 +127,6 @@ const toggleDropdown = () => {
                 <a href="/eventRequest" class="w-full">
                     <span
                         v-if="user_role === 'venue_coordinator'"
-                        class="p-2 rounded flex items-center w-full text-white"
                         :class="[
                             isSidebarOpen
                                 ? ''
@@ -137,6 +136,7 @@ const toggleDropdown = () => {
                                 : 'opacity-60 hover:opacity-100',
                             'p-2 rounded flex  items-center w-full text-white',
                         ]"
+                        class="p-2 rounded flex items-center w-full text-white"
                     >
                         <i
                             class="fa-solid fa-location-arrow text-sm mr-2 transition-transform transform"
@@ -155,9 +155,12 @@ const toggleDropdown = () => {
                             isSidebarOpen
                                 ? ''
                                 : 'flex flex-col text-xs text-center',
-                            pageTitle == 'Requests' ? 'opacity-100' : '',
+                            pageTitle == 'Requests'
+                                ? 'opacity-100 hover:opacity-60'
+                                : 'opacity-60 hover:opacity-100',
+                            'p-2 rounded flex  items-center w-full text-white',
                         ]"
-                        class="p-2 rounded flex items-center opacity-60 hover:opacity-100 w-full text-white"
+                        class="p-2 rounded flex items-center w-full text-white"
                     >
                         <i
                             class="fa-solid fa-location-arrow text-sm mr-2 transition-transform transform"
@@ -173,9 +176,7 @@ const toggleDropdown = () => {
                 </a>
 
                 <a
-                    v-if="
-                        user_role === 'super_admin' || user_role === 'sec-admin'
-                    "
+                    v-if="user_role === 'admin' || user_role === 'sec-admin'"
                     href="/venue-coordinators"
                     :class="[
                         isSidebarOpen
@@ -202,9 +203,7 @@ const toggleDropdown = () => {
                 </a>
 
                 <a
-                    v-if="
-                        user_role === 'super_admin' || user_role === 'sec-admin'
-                    "
+                    v-if="user_role === 'admin' || user_role === 'sec-admin'"
                     href="/users"
                     :class="[
                         isSidebarOpen
